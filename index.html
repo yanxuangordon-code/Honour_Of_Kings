@@ -203,7 +203,7 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 .sb-me .sb-name{color:#c4b5fd;}
 .sb-me .sb-k{color:#4ade80;}
 /* Kill goal badge */
-.kill-goal-badge{position:absolute;top:10px;right:14px;background:rgba(0,0,0,0.65);
+.kill-goal-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);
   border:1px solid rgba(245,200,66,0.3);border-radius:20px;padding:4px 12px;
   font-size:0.65rem;color:var(--gold);letter-spacing:0.08em;pointer-events:none;}
 /* Revive banner */
@@ -271,6 +271,32 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 .setup-right .class-grid{grid-template-columns:repeat(2,1fr);}
 @media(min-width:1000px){.setup-right .class-grid{grid-template-columns:repeat(2,1fr);}}
 
+
+/* ── SOLO MODE BUTTON ── */
+.btn-solo{width:100%;padding:14px;border:2px solid #22c55e;border-radius:11px;
+  font-family:'Cinzel Decorative',serif;font-size:0.95rem;font-weight:700;cursor:pointer;
+  background:rgba(34,197,94,0.12);color:#4ade80;letter-spacing:0.08em;
+  transition:all 0.18s;margin-top:8px;}
+.btn-solo:hover{background:rgba(34,197,94,0.22);box-shadow:0 0 20px rgba(34,197,94,0.3);}
+/* NPC health bar above head */
+.npc-label{pointer-events:none;}
+/* Solo HUD wave badge */
+#waveDisplay{position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.7);border:1px solid rgba(245,200,66,0.4);border-radius:20px;
+  padding:4px 18px;font-family:'Cinzel Decorative',serif;font-size:0.75rem;color:var(--gold);
+  pointer-events:none;z-index:30;}
+
+
+/* ── QUIT BUTTON ── */
+.btn-quit{
+  position:fixed;bottom:18px;right:18px;
+  background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.4);
+  color:#f87171;font-family:'Cinzel',serif;font-size:0.65rem;font-weight:600;
+  letter-spacing:0.1em;padding:6px 14px;border-radius:8px;cursor:pointer;
+  transition:all 0.15s;z-index:50;
+}
+.btn-quit:hover{background:rgba(220,38,38,0.35);border-color:#f87171;color:#fff;}
+
 </style>
 </head>
 <body>
@@ -286,7 +312,7 @@ input::placeholder{color:rgba(200,180,255,0.28);}
         <div class="title-main">⚔️ Arcane Battlegrounds</div>
         <div class="title-sub">8-Player · Free For All · Last Wizard Standing</div>
       </div>
-      <input type="hidden" id="apiKey" value="Xzs3kg.thsRWQ:9li47YsyXwMHsq5_ZM-us7l3V_dI73zSLvdhdenllCs"/>
+      <input type="hidden" id="apiKey" value="Xzs3kg.oodI9w:v6sxYI9wWpYhO6G1YaWcnNxz8ulrP7YBaboUjg-BvPg"/>
       <label class="field-label">Your Wizard Name</label>
       <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="16"/>
       <label class="field-label" style="margin-bottom:9px">Choose Server · Max 8 Players · Battle starts at 2</label>
@@ -313,7 +339,8 @@ input::placeholder{color:rgba(200,180,255,0.28);}
           <div class="sv-slots" id="sl-SHADOW">0 / 8 wizards</div>
         </div>
       </div>
-      <button class="btn btn-primary" id="joinBtn" onclick="joinGame()">⚔️ Enter the Arena</button>
+      <button class="btn btn-primary" id="joinBtn" onclick="joinGame()">⚔️ Enter the Arena — Multiplayer</button>
+      <button class="btn btn-solo" id="soloBtn" onclick="startSolo()">🤖 Solo Mode — Fight NPCs</button>
       <div class="status-msg" id="setupStatus"></div>
     </div>
 
@@ -352,6 +379,7 @@ input::placeholder{color:rgba(200,180,255,0.28);}
       <div class="hud-alive">Alive<span id="aliveN">?</span></div>
       <div class="hud-hidden" id="hiddenBadge">🌿 Hidden</div>
     </div>
+    <div id="waveDisplay" style="display:none">⚔️ Wave 1</div>
     <div class="killfeed" id="kfeed"></div>
     <div class="revive-banner" id="reviveBanner" style="display:none">💀 Reviving in 3s...</div>
     <div class="kill-sb" id="killScoreboard"></div>
@@ -394,10 +422,10 @@ input::placeholder{color:rgba(200,180,255,0.28);}
       <div class="go-stat"><span class="go-sv" id="goDmg">0</span><span class="go-sl">Your Damage</span></div>
     </div>
     <button class="btn btn-primary" onclick="resetGame()">⚔️ Play Again</button>
+      <button class="btn" onclick="quitGame()" style="margin-top:10px;background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.4);color:#f87171;width:100%;padding:12px;border-radius:10px;font-family:'Cinzel',serif;font-size:0.85rem;cursor:pointer">✕ Main Menu</button>
   </div>
 </div>
-
-
+<button class="btn-quit" id="quitBtn" onclick="quitGame()" title="Quit to menu" style="display:none">✕ Quit</button>
 </div>
 
 <script>
@@ -779,6 +807,8 @@ function showScreen(id){
   const hd = document.getElementById('hud');
   if(cv) cv.style.display = inGame ? 'block' : 'none';
   if(hd) hd.style.display = inGame ? 'block' : 'none';
+  const qb = document.getElementById('quitBtn');
+  if(qb) qb.style.display = inGame ? 'block' : 'none';
 }
 
 // =====================================================
@@ -804,10 +834,15 @@ async function joinGame(){
     channel.subscribe('act', onAct);
     channel.subscribe('hps', onHps);
     channel.subscribe('go',  onGo);
-    channel.publish('ann', {id:myId, name:gs.name, cls:gs.cls, t:Date.now()});
+    pub('ann', {id:myId, name:gs.name, cls:gs.cls, t:Date.now()});
     showLobby();
   } catch(e){
-    setSt('Connection failed.','error');
+    const msg = e && e.message ? e.message : '';
+    if(msg.includes('key') || msg.includes('auth') || !msg){
+      setSt('❌ Connection failed. Please try again.','error');
+    } else {
+      setSt('❌ '+msg,'error');
+    }
     document.getElementById('joinBtn').disabled = false;
   }
 }
@@ -848,16 +883,22 @@ function refreshLobby(){
 // =====================================================
 //  NETWORK HANDLERS
 // =====================================================
+let lastReAnn = 0;
 function onAnn(msg){
   const d = msg.data;
   if(d.id===myId) return;
   if(Object.keys(players).length >= MAX_P-1) return;
+  const isNew = !players[d.id];
   players[d.id] = {id:d.id, name:d.name, cls:d.cls, t:d.t,
     x:0, y:0, hp:MAX_HP, facing:1, dead:false, animT:0, animF:0, inGrass:false, invisible:false, invisUntil:0};
-  // Re-announce ourselves so the newcomer can discover us (Ably has no message history)
-  channel.publish('ann', {id:myId, name:gs.name, cls:gs.cls, t:Date.now()});
-  // Also send current position immediately if we're in-game
-  if(me) channel.publish('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:me.dead||false, inv:invisible&&invisT>0});
+  // Only re-announce if this is a brand-new player AND we haven't re-announced recently
+  // This lets the newcomer discover us without causing an infinite ping-pong loop
+  const now = Date.now();
+  if(isNew && now - lastReAnn > 1500){
+    lastReAnn = now;
+    pub('ann', {id:myId, name:gs.name, cls:gs.cls, t:now});
+    if(me) pub('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:me.dead||false, inv:invisible&&invisT>0});
+  }
   refreshLobby();
   const all = [...Object.keys(players), myId].sort();
   if(!gs.started && all.length >= 2){
@@ -866,7 +907,7 @@ function onAnn(msg){
       setTimeout(()=>{
         const spawns = {};
         all.forEach((id,i) => spawns[id] = SPAWN_PTS[i % SPAWN_PTS.length]);
-        channel.publish('act', {type:'START', spawns, room:gs.room});
+        pub('act', {type:'START', spawns, room:gs.room});
       }, 900);
     }
   }
@@ -919,7 +960,7 @@ function onAct(msg){
       Object.values(players).forEach(en=>{
         if(en.dead)return;
         if((me.x-en.x)**2+(me.y-en.y)**2<r2){
-          channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:d.dmg,color:'#ff4500'});
+          pub('act',{type:'HIT',from:myId,to:en.id,dmg:d.dmg,color:'#ff4500'});
           dmgDealt+=d.dmg; en.hp=Math.max(0,en.hp-d.dmg);
           addFloat(en.x,en.y,'-'+d.dmg+' REFLECTED','#ff4500');
         }
@@ -929,10 +970,10 @@ function onAct(msg){
       me.hp=Math.max(0,me.hp-dmg);
       spawnParticles(me.x,me.y,d.color||'#f87171',8);
       addFloat(me.x,me.y,'-'+dmg,d.color||'#f87171');
-      channel.publish('hps',{id:myId,hp:me.hp});
+      pub('hps',{id:myId,hp:me.hp});
       if(me.hp<=0 && !me.dead){
         me.dead=true; reviveTimer=REVIVE_DELAY;
-        channel.publish('go',{winner:d.from,loser:myId});
+        pub('go',{winner:d.from,loser:myId});
         showReviveBanner();
       }
     }
@@ -943,7 +984,7 @@ function onAct(msg){
     spawnParticles(me.x,me.y,'#bae6fd',22);
     addFloat(me.x,me.y,'❄️ FROZEN!','#bae6fd');
     feed('❄️ Frozen — cannot move!','d');
-    channel.publish('hps',{id:myId,hp:me.hp});
+    pub('hps',{id:myId,hp:me.hp});
     setTimeout(()=>{ if(me){me.rooted=false;} }, d.dur||2000);
   }
   if(d.type==='PULL' && d.to===myId && me && !me.dead){
@@ -951,10 +992,10 @@ function onAct(msg){
     me.hp=Math.max(0,me.hp-(d.dmg||0));
     spawnParticles(me.x,me.y,d.color||'#7c3aed',12);
     addFloat(me.x,me.y,'-'+(d.dmg||0)+' PULLED','#7c3aed');
-    channel.publish('hps',{id:myId,hp:me.hp});
+    pub('hps',{id:myId,hp:me.hp});
     if(me.hp<=0 && !me.dead){
       me.dead=true; reviveTimer=REVIVE_DELAY;
-      channel.publish('go',{winner:d.from,loser:myId});
+      pub('go',{winner:d.from,loser:myId});
       showReviveBanner();
     }
   }
@@ -984,7 +1025,7 @@ function onAct(msg){
     me.hp=Math.max(0,me.hp-dmgR);
     spawnParticles(me.x,me.y,'#bae6fd',16);
     addFloat(me.x,me.y,'❄️ FROZEN!','#bae6fd');
-    channel.publish('hps',{id:myId,hp:me.hp});
+    pub('hps',{id:myId,hp:me.hp});
     feed('❄️ Frozen! Can\'t move for '+(d.dur/1000).toFixed(1)+'s','d');
   }
   if(d.type==='PULL' && d.to===myId && me && !me.dead){
@@ -993,8 +1034,8 @@ function onAct(msg){
     me.hp=Math.max(0,me.hp-dmgP);
     spawnParticles(me.x,me.y,'#7c3aed',12);
     if(dmgP>0)addFloat(me.x,me.y,'-'+dmgP,'#7c3aed');
-    channel.publish('hps',{id:myId,hp:me.hp});
-    if(me.hp<=0&&!me.dead){me.dead=true;reviveTimer=REVIVE_DELAY;channel.publish('go',{winner:d.from,loser:myId});showReviveBanner();}
+    pub('hps',{id:myId,hp:me.hp});
+    if(me.hp<=0&&!me.dead){me.dead=true;reviveTimer=REVIVE_DELAY;pub('go',{winner:d.from,loser:myId});showReviveBanner();}
   }
   if(d.type==='INVIS' && players[d.from]){
     players[d.from].invisible = d.on;
@@ -1121,7 +1162,7 @@ function loop(ts){
   if(!gs.running) return;
   const dt = Math.min((ts - lastT)/1000, 0.05);
   lastT = ts;
-  update(dt);
+  if(SOLO_MODE.active){ updateSolo(dt); } else { update(dt); }
   render();
   renderMM();
   requestAnimationFrame(loop);
@@ -1144,7 +1185,7 @@ function update(dt){
       rb.style.display='none';
       spawnParticles(me.x, me.y, CLASSES[gs.cls].color, 20);
       feed('✨ You respawned!', 'h');
-      channel.publish('hps', {id:myId, hp:MAX_HP, dead:false});
+      pub('hps', {id:myId, hp:MAX_HP, dead:false});
     }
     // Still update camera and particles while dead
     camX += (me.x - W/2 - camX) * 0.1;
@@ -1157,7 +1198,7 @@ function update(dt){
 
   // Status effect timers
   if(invisible){ invisT-=dt; if(invisT<=0){invisible=false;feed('👁 Visible again','');
-    channel.publish('act',{type:'INVIS',from:myId,on:false});} }
+    pub('act',{type:'INVIS',from:myId,on:false});} }
   if(empowered && Date.now()>empoweredT){ empowered=false; feed('⚡ Overcharge expired',''); }
   if(me.rooted && me.rootedUntil && Date.now()>=me.rootedUntil) me.rooted=false;
   // Movement — WASD
@@ -1203,14 +1244,15 @@ function update(dt){
     if(hitBuilding(p.x, p.y, p.r)){ spawnParticles(p.x,p.y,p.color,6); projs.splice(i,1); continue; }
     if(p.owner===myId){
       let hit = false, hitTarget = null;
-      Object.values(players).forEach(en=>{
+      const hitPool = SOLO_MODE.active ? SOLO_MODE.npcs : Object.values(players);
+      hitPool.forEach(en=>{
         if(hit || en.dead) return;
         const dx2=p.x-en.x, dy2=p.y-en.y;
         if(dx2*dx2+dy2*dy2 < (PR+p.r)**2){
           hit = true; hitTarget = en;
-          // Stealth bonus: Shadow Veil first strike = 2× dmg
           const finalDmg = p.stealthBonus ? p.dmg*2 : p.dmg;
-          channel.publish('act',{type:'HIT', from:myId, to:en.id, dmg:finalDmg, color:p.color});
+          if(SOLO_MODE.active){ npcTakeDamage(en,finalDmg,p.color); dmgDealt+=finalDmg; }
+          else { pub('act',{type:'HIT', from:myId, to:en.id, dmg:finalDmg, color:p.color}); }
           dmgDealt += finalDmg; en.hp = Math.max(0, en.hp-finalDmg);
           spawnParticles(p.x,p.y,p.color,12);
           addFloat(en.x,en.y,'-'+finalDmg+(p.stealthBonus?' ⚡2×!':''),p.color);
@@ -1221,7 +1263,7 @@ function update(dt){
             const burnId = setInterval(()=>{
               if(!gs.running||en.dead||dtick>=p.dotTicks){clearInterval(burnId);return;}
               const bd=p.dotDmg;
-              channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:bd,color:'#ff4500'});
+              pub('act',{type:'HIT',from:myId,to:en.id,dmg:bd,color:'#ff4500'});
               dmgDealt+=bd; en.hp=Math.max(0,en.hp-bd);
               spawnParticles(en.x,en.y,'#ff4500',4);
               addFloat(en.x,en.y,'-'+bd+' 🔥','#ff4500');
@@ -1231,7 +1273,7 @@ function update(dt){
           // Freeze Shot — root target
           if(p.rootDur){
             en.rooted=true; en.rootedUntil=Date.now()+p.rootDur;
-            channel.publish('act',{type:'ROOT',from:myId,to:en.id,dur:p.rootDur,dmg:0});
+            if(!SOLO_MODE.active) pub('act',{type:'ROOT',from:myId,to:en.id,dur:p.rootDur,dmg:0});
             spawnParticles(en.x,en.y,'#bae6fd',16);
             addFloat(en.x,en.y,'❄️ FROZEN!','#bae6fd');
           }
@@ -1241,7 +1283,8 @@ function update(dt){
         // Chain Lightning bounce to 2nd enemy
         if(p.bounce && hitTarget){
           let second=null, nearD2=360*360;
-          Object.values(players).forEach(en=>{
+          const trailPool = SOLO_MODE.active ? SOLO_MODE.npcs : Object.values(players);
+          trailPool.forEach(en=>{
             if(en.dead||en===hitTarget)return;
             const d=(p.x-en.x)**2+(p.y-en.y)**2;
             if(d<nearD2){nearD2=d;second=en;}
@@ -1252,8 +1295,9 @@ function update(dt){
             projs.push({x:p.x,y:p.y,
               vx:Math.cos(bangle)*p.vx*1.2,vy:Math.sin(bangle)*p.vy*1.2||Math.cos(bangle)*600,
               r:p.r*0.65,life:0.55,dmg:bdmg,color:'#fef08a',owner:myId,bounce:false,stealthBonus:false});
-            channel.publish('act',{type:'HIT',from:myId,to:second.id,dmg:bdmg,color:'#fef08a'});
-            dmgDealt+=bdmg; second.hp=Math.max(0,second.hp-bdmg);
+            if(SOLO_MODE.active){ npcTakeDamage(second,bdmg,'#fef08a'); }
+            else { pub('act',{type:'HIT',from:myId,to:second.id,dmg:bdmg,color:'#fef08a'}); second.hp=Math.max(0,second.hp-bdmg); }
+            dmgDealt+=bdmg;
             addFloat(second.x,second.y,'-'+bdmg+' ⚡bounce','#fef08a');
           }
         }
@@ -1291,7 +1335,7 @@ function update(dt){
   syncT += dt*1000;
   if(syncT >= SYNC_MS){
     syncT = 0;
-    channel.publish('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:false, inv:invisible&&invisT>0});
+    pub('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:false, inv:invisible&&invisT>0});
   }
 
   updateHUD();
@@ -1434,6 +1478,9 @@ function render(){
     ctx.restore();
   });
 
+  // Draw NPCs (solo mode)
+  drawNPCs();
+
   // Draw ME always on top
   if(me){
     if(me.dead){
@@ -1573,11 +1620,28 @@ function renderMM(){
     mmctx.fillRect(g.x*sx,g.y*sy,g.w*sx,g.h*sy);
   });
 
+  // Enemy players (always shown — including those in grass)
+  if(!SOLO_MODE.active){
+    Object.values(players).forEach(p=>{
+      if(p.dead) return;
+      mmctx.fillStyle = CLASSES[p.cls]?.color || '#f87171';
+      mmctx.beginPath(); mmctx.arc(p.x*sx,p.y*sy,2.5,0,Math.PI*2); mmctx.fill();
+    });
+  }
+
+  // NPC blips (solo mode — shown even inside grass)
+  if(SOLO_MODE.active){
+    SOLO_MODE.npcs.forEach(npc=>{
+      if(npc.dead) return;
+      mmctx.fillStyle = npc.color;
+      mmctx.beginPath(); mmctx.arc(npc.x*sx,npc.y*sy,2.5,0,Math.PI*2); mmctx.fill();
+    });
+  }
+
   // Me
   if(me){
     mmctx.fillStyle='#fff';
     mmctx.beginPath(); mmctx.arc(me.x*sx,me.y*sy,3.5,0,Math.PI*2); mmctx.fill();
-    // Pulsing ring for me
     mmctx.strokeStyle='rgba(255,255,255,0.4)';
     mmctx.lineWidth=1;
     mmctx.beginPath(); mmctx.arc(me.x*sx,me.y*sy,5+Math.sin(Date.now()*0.005)*2,0,Math.PI*2); mmctx.stroke();
@@ -1606,12 +1670,12 @@ function doMelee(){
   const eDmg = empowered ? Math.floor(mel.dmg*empoweredMult*invisBonus) : Math.floor(mel.dmg*invisBonus);
   const eCol = empowered ? '#facc15' : mel.color;
   if(empowered){empowered=false;empoweredMult=1;spawnParticles(me.x,me.y,'#facc15',20);addFloat(me.x,me.y,'⚡ 3×!','#facc15');}
-  if(invisible&&invisBonus>1){invisible=false;invisT=0;me.invisible=false;channel.publish('act',{type:'INVIS',from:myId,on:false});feed('👁 Visible — strike bonus!','s');}
+  if(invisible&&invisBonus>1){invisible=false;invisT=0;me.invisible=false;pub('act',{type:'INVIS',from:myId,on:false});feed('👁 Visible — strike bonus!','s');}
   projs.push({x:me.x, y:me.y,
     vx:Math.cos(angle)*mel.speed, vy:Math.sin(angle)*mel.speed,
     r:mel.r+(empowered?4:0), life, dmg:eDmg, color:eCol, owner:myId,
     bounce:false, rootDur:0, dotDmg:0, dotTicks:0, stealthBonus:false});
-  channel.publish('act',{type:'PROJ', from:myId,
+  pub('act',{type:'PROJ', from:myId,
     sx:me.x, sy:me.y, tx:wx, ty:wy,
     sp:mel.speed, col:eCol, r:mel.r, life});
   spawnParticles(me.x,me.y,mel.color,5);
@@ -1648,14 +1712,14 @@ function useAb(idx){
           dotTicks: ab.dotTicks||0,
           dotInterval: ab.dotInterval||800,
           stealthBonus: (invisible&&gs.cls==='shadowmage')});
-        channel.publish('act',{type:'PROJ',from:myId,
+        pub('act',{type:'PROJ',from:myId,
           sx:me.x,sy:me.y,tx:wx+sp*300,ty:wy,
           sp:ab.speed,col:ab.color,r:ab.r,life});
       },t*90);
     });
     // Break stealth on fire
     if(invisible){ invisible=false; invisT=0;
-      channel.publish('act',{type:'INVIS',from:myId,on:false}); }
+      pub('act',{type:'INVIS',from:myId,on:false}); }
     spawnParticles(me.x,me.y,ab.color,8);
     feed(ab.icon+' '+ab.name+(shots.length>1?' ×3':''),'');
 
@@ -1674,8 +1738,8 @@ function useAb(idx){
     spawnParticles(me.x,me.y,'#4ade80',16);
     spawnParticles(me.x,me.y,ab.color,10);
     addFloat(me.x,me.y,'+'+h+' HP','#4ade80');
-    channel.publish('hps',{id:myId,hp:me.hp});
-    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
+    pub('hps',{id:myId,hp:me.hp});
+    pub('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
     feed(ab.icon+' '+ab.name+' +'+ h+' HP','h');
 
   // ── TRAIL DASH (Pyromancer Magma Dash) ─────────────────────────────────────
@@ -1699,15 +1763,15 @@ function useAb(idx){
     spawnParticles(me.x,me.y,'#4ade80',14);
     spawnParticles(me.x,me.y,ab.color,14);
     addFloat(me.x,me.y,'+'+h2+' HP','#4ade80');
-    channel.publish('hps',{id:myId,hp:me.hp});
-    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+    pub('hps',{id:myId,hp:me.hp});
+    pub('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
     feed(ab.icon+' Magma Dash +'+ h2+' HP','h');
 
   // ── INVISIBILITY ──────────────────────────────────────────────────────────
   } else if(ab.type==='invis'){
     invisible=true; invisT=ab.dur||3;
     spawnParticles(me.x,me.y,ab.color,22);
-    channel.publish('act',{type:'INVIS',from:myId,on:true});
+    pub('act',{type:'INVIS',from:myId,on:true});
     addFloat(me.x,me.y,'👻 INVISIBLE','#a855f7');
     feed(ab.icon+' Shadow Veil — VANISHED for '+ab.dur+'s!','s');
 
@@ -1740,7 +1804,7 @@ function useAb(idx){
       nearest.rooted=true;
       nearest.hp=Math.max(0,nearest.hp-(ab.dmg||8));
       dmgDealt+=ab.dmg||8;
-      channel.publish('act',{type:'ROOT',from:myId,to:nearest.id,dur:ab.rootDur||2000,dmg:ab.dmg||8});
+      pub('act',{type:'ROOT',from:myId,to:nearest.id,dur:ab.rootDur||2000,dmg:ab.dmg||8});
       spawnParticles(nearest.x,nearest.y,'#bae6fd',22);
       addFloat(nearest.x,nearest.y,'❄️ FROZEN!','#bae6fd');
       feed(ab.icon+' '+nearest.name+' is FROZEN!','s');
@@ -1749,36 +1813,35 @@ function useAb(idx){
   // ── SOUL VORTEX (pull AoE) ────────────────────────────────────────────────
   } else if(ab.type==='pull_aoe'){
     const r2=ab.range*ab.range; let count=0;
-    Object.values(players).forEach(en=>{
+    const pullList = SOLO_MODE.active ? SOLO_MODE.npcs.filter(n=>!n.dead) : Object.values(players);
+    pullList.forEach(en=>{
       if(en.dead)return;
       const dx=en.x-me.x, dy=en.y-me.y, d2=dx*dx+dy*dy;
       if(d2<r2){
         const d=Math.sqrt(d2)||1;
-        en.x=me.x+dx*(70/d); en.y=me.y+dy*(70/d); // pull to 70px
-        channel.publish('act',{type:'PULL',from:myId,to:en.id,toX:en.x,toY:en.y,dmg:ab.dmg,color:ab.color});
-        dmgDealt+=ab.dmg; en.hp=Math.max(0,en.hp-ab.dmg);
+        en.x=me.x+dx*(70/d); en.y=me.y+dy*(70/d);
+        if(SOLO_MODE.active){ npcTakeDamage(en,ab.dmg,ab.color); }
+        else { pub('act',{type:'PULL',from:myId,to:en.id,toX:en.x,toY:en.y,dmg:ab.dmg,color:ab.color}); en.hp=Math.max(0,en.hp-ab.dmg); }
+        dmgDealt+=ab.dmg;
         addFloat(en.x,en.y,'-'+ab.dmg,ab.color);
         count++;
       }
     });
     spawnParticles(me.x,me.y,ab.color,28);
-    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+    pub('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
     feed(ab.icon+' Soul Vortex'+(count?' → '+count+' pulled':''),'');
 
   // ── DEATH PACT (sacrifice) ────────────────────────────────────────────────
   } else if(ab.type==='sacrifice'){
     let nearest=null, nearD2=ab.range*ab.range;
-    Object.values(players).forEach(en=>{
-      if(en.dead)return;
-      const d=(me.x-en.x)**2+(me.y-en.y)**2;
-      if(d<nearD2){nearD2=d;nearest=en;}
-    });
+    if(SOLO_MODE.active){ nearest=soloNearestNPC(); }
+    else { Object.values(players).forEach(en=>{ if(en.dead)return; const d=(me.x-en.x)**2+(me.y-en.y)**2; if(d<nearD2){nearD2=d;nearest=en;} }); }
     if(nearest){
       const cost=ab.selfDmg||30;
       me.hp=Math.max(1,me.hp-cost);
       addFloat(me.x,me.y,'-'+cost+' (pact)','#94a3b8');
-      channel.publish('hps',{id:myId,hp:me.hp});
-      channel.publish('act',{type:'HIT',from:myId,to:nearest.id,dmg:ab.dmg,color:ab.color});
+      pub('hps',{id:myId,hp:me.hp});
+      pub('act',{type:'HIT',from:myId,to:nearest.id,dmg:ab.dmg,color:ab.color});
       dmgDealt+=ab.dmg; nearest.hp=Math.max(0,nearest.hp-ab.dmg);
       spawnParticles(nearest.x,nearest.y,ab.color,24);
       addFloat(nearest.x,nearest.y,'-'+ab.dmg+' 💀','#94a3b8');
@@ -1795,10 +1858,10 @@ function useAb(idx){
     });
     if(nearest){
       const stolen=Math.min(ab.stealAmt||40, nearest.hp-1);
-      channel.publish('act',{type:'HIT',from:myId,to:nearest.id,dmg:stolen,color:ab.color});
+      pub('act',{type:'HIT',from:myId,to:nearest.id,dmg:stolen,color:ab.color});
       dmgDealt+=stolen; nearest.hp=Math.max(1,nearest.hp-stolen);
       me.hp=Math.min(MAX_HP,me.hp+stolen);
-      channel.publish('hps',{id:myId,hp:me.hp});
+      pub('hps',{id:myId,hp:me.hp});
       addFloat(nearest.x,nearest.y,'-'+stolen,ab.color);
       addFloat(me.x,me.y,'+'+stolen+' STOLEN','#f43f5e');
       spawnParticles(nearest.x,nearest.y,ab.color,14);
@@ -1808,24 +1871,24 @@ function useAb(idx){
 
   // ── DOT AoE (spore cloud / grave curse) ──────────────────────────────────
   } else if(ab.type==='dot_aoe'){
-    const r2=ab.range*ab.range; const targets=[];
-    Object.values(players).forEach(en=>{
-      if(!en.dead&&(me.x-en.x)**2+(me.y-en.y)**2<r2) targets.push(en);
-    });
+    const r2=ab.range*ab.range;
+    const basePool = SOLO_MODE.active ? SOLO_MODE.npcs : Object.values(players);
+    const targets = basePool.filter(en=>!en.dead&&(me.x-en.x)**2+(me.y-en.y)**2<r2);
     if(targets.length>0){
       targets.forEach(en=>{
         clearInterval(dotTimers[en.id]);
         let tick=0;
         dotTimers[en.id]=setInterval(()=>{
           if(!gs.running||en.dead||tick>=(ab.dotTicks||4)){clearInterval(dotTimers[en.id]);return;}
-          channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:ab.dotDmg||10,color:ab.color});
-          dmgDealt+=ab.dotDmg||10; en.hp=Math.max(0,en.hp-(ab.dotDmg||10));
+          if(SOLO_MODE.active){ npcTakeDamage(en,ab.dotDmg||10,ab.color); }
+          else { pub('act',{type:'HIT',from:myId,to:en.id,dmg:ab.dotDmg||10,color:ab.color}); en.hp=Math.max(0,en.hp-(ab.dotDmg||10)); }
+          dmgDealt+=ab.dotDmg||10;
           spawnParticles(en.x,en.y,ab.color,4);
           tick++;
         }, ab.dotInterval||600);
       });
       spawnParticles(me.x,me.y,ab.color,22);
-      channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+      pub('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
       feed(ab.icon+' '+ab.name+' → '+targets.length+' target'+(targets.length>1?'s':''),'s');
     } else { abCDs[idx]=0; feed(ab.icon+' No targets',''); }
 
@@ -1835,8 +1898,8 @@ function useAb(idx){
     me.hp=Math.min(MAX_HP,me.hp+amt);
     spawnParticles(me.x,me.y,'#4ade80',18);
     addFloat(me.x,me.y,'+'+amt+' HP','#4ade80');
-    channel.publish('hps',{id:myId,hp:me.hp});
-    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
+    pub('hps',{id:myId,hp:me.hp});
+    pub('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
     feed(ab.icon+' '+ab.name+' +'+amt+' HP','h');
 
   // ── STANDARD AoE ─────────────────────────────────────────────────────────
@@ -1845,13 +1908,13 @@ function useAb(idx){
     Object.values(players).forEach(en=>{
       if(en.dead)return;
       if((me.x-en.x)**2+(me.y-en.y)**2<r2){
-        channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:ab.dmg,color:ab.color});
+        pub('act',{type:'HIT',from:myId,to:en.id,dmg:ab.dmg,color:ab.color});
         dmgDealt+=ab.dmg; en.hp=Math.max(0,en.hp-ab.dmg);
         addFloat(en.x,en.y,'-'+ab.dmg,ab.color);
       }
     });
     spawnParticles(me.x,me.y,ab.color,26);
-    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+    pub('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
     feed(ab.icon+' '+ab.name,'');
   }
 }
@@ -1906,7 +1969,7 @@ function startBurnSelf(burn){
     me.hp=Math.max(1,me.hp-burn.dmg);
     spawnParticles(me.x,me.y,'#ff4500',4);
     addFloat(me.x,me.y,'-'+burn.dmg,'#ff4500');
-    channel.publish('hps',{id:myId,hp:me.hp});
+    pub('hps',{id:myId,hp:me.hp});
     feed('🔥 Burning -'+burn.dmg,'d');
     t++;
   }, burn.interval||900);
@@ -1919,7 +1982,7 @@ function startPoisonSelf(poison){
     me.hp=Math.max(1,me.hp-poison.dmg);
     spawnParticles(me.x,me.y,'#4ade80',4);
     addFloat(me.x,me.y,'-'+poison.dmg,'#4ade80');
-    channel.publish('hps',{id:myId,hp:me.hp});
+    pub('hps',{id:myId,hp:me.hp});
     feed('☠️ Poisoned -'+poison.dmg,'d');
     t++;
   }, poison.interval||800);
@@ -1971,12 +2034,17 @@ function updateHUD(){
   b.style.width=(pct*100)+'%';
   b.className='hud-bar hb-hp'+(pct<0.3?' low':pct<0.6?' mid':'');
   document.getElementById('myHpTxt').textContent=Math.max(0,me.hp)+' HP';
-  const othersAlive=Object.values(players).filter(p=>!p.dead).length;
-  const totalOthers=Object.keys(players).length;
-  const meAlive=(me&&!me.dead)?1:0;
-  const alive=othersAlive+meAlive;
-  const total=totalOthers+1;
-  document.getElementById('aliveN').textContent=alive+' / '+total;
+  let aliveDisp, totalDisp;
+  if(SOLO_MODE.active){
+    aliveDisp = SOLO_MODE.npcs.filter(n=>!n.dead).length;
+    totalDisp = SOLO_MODE.waveTarget;
+    document.getElementById('aliveN').textContent = aliveDisp+' NPCs';
+  } else {
+    const othersAlive=Object.values(players).filter(p=>!p.dead).length;
+    const totalOthers=Object.keys(players).length;
+    const meAlive=(me&&!me.dead)?1:0;
+    document.getElementById('aliveN').textContent=(othersAlive+meAlive)+' / '+(totalOthers+1);
+  }
 }
 
 const feedEls=[];
@@ -2041,16 +2109,19 @@ function endGame(won, winKills, winName){
 }
 
 function leaveGame(){
-  if(ably){channel.publish('bye',{id:myId});ably.close();ably=null;}
+  if(ably){pub('bye',{id:myId});ably.close();ably=null;}
   players={}; gs.started=false; gs.running=false;
+  SOLO_MODE.active=false; SOLO_MODE.npcs=[]; SOLO_MODE.wave=0;
+  const wd2=document.getElementById('waveDisplay'); if(wd2) wd2.style.display='none';
   showScreen('setupScreen');
   document.getElementById('joinBtn').disabled=false; setSt('');
 }
 
 function resetGame(){
-  if(ably){channel.publish('bye',{id:myId});ably.close();ably=null;}
+  if(ably){pub('bye',{id:myId});ably.close();ably=null;}
   players={}; projs=[]; particles=[]; floaters.length=0; feedEls.length=0;
   gs.started=false; gs.running=false; gameOver=false;
+  SOLO_MODE.active=false; SOLO_MODE.npcs=[]; SOLO_MODE.wave=0; SOLO_MODE.score=0;
   me=null; kills=0; dmgDealt=0; inGrass=false; reviveTimer=0; killBoard={};
   // Clear all status effects
   invisible=false; invisT=0;
@@ -2066,6 +2137,512 @@ function resetGame(){
   showScreen('setupScreen');
   document.getElementById('joinBtn').disabled=false; setSt('');
 }
+
+// =====================================================
+//  SOLO MODE — NPC SYSTEM
+// =====================================================
+const SOLO_MODE = { active:false, wave:0, npcs:[], nextSpawn:0, score:0, waveKills:0, waveTarget:0, waveClearPending:false, waveSpawned:false };
+// Safe publish — no-ops in solo mode where channel is null
+function pub(ev,data){ if(!SOLO_MODE.active && channel) channel.publish(ev,data); }
+
+// NPC archetypes — progressively harder
+const NPC_TYPES = [
+  { name:'Skeleton',  em:'💀', color:'#a3a3a3', hp:80,  spd:115, dmg:20, range:460, atkRate:1.3, reward:10 },
+  { name:'Goblin',    em:'👺', color:'#4ade80', hp:65,  spd:175, dmg:26, range:420, atkRate:1.0, reward:15 },
+  { name:'Orc',       em:'👹', color:'#fb923c', hp:170, spd:130, dmg:38, range:500, atkRate:1.6, reward:20 },
+  { name:'Dark Mage', em:'🧙', color:'#a855f7', hp:130, spd:145, dmg:48, range:620, atkRate:2.0, reward:30 },
+  { name:'Golem',     em:'🗿', color:'#78716c', hp:320, spd:90,  dmg:60, range:520, atkRate:2.5, reward:50 },
+  { name:'Wraith',    em:'👻', color:'#67e8f9', hp:100, spd:210, dmg:42, range:480, atkRate:1.1, reward:35 },
+  { name:'Dragon',    em:'🐲', color:'#ef4444', hp:500, spd:110, dmg:75, range:680, atkRate:2.8, reward:100},
+];
+
+let npcIdCounter = 0;
+
+function spawnNPC(typeIdx, x, y){
+  const t = NPC_TYPES[Math.min(typeIdx, NPC_TYPES.length-1)];
+  const id = 'npc_'+(npcIdCounter++);
+  const npc = {
+    id, name:t.name, em:t.em, color:t.color,
+    x: x || SPAWN_PTS[Math.floor(Math.random()*SPAWN_PTS.length)].x + (Math.random()-0.5)*300,
+    y: y || SPAWN_PTS[Math.floor(Math.random()*SPAWN_PTS.length)].y + (Math.random()-0.5)*300,
+    hp:t.hp, maxHp:t.hp, spd:t.spd, dmg:t.dmg,
+    range:t.range, atkRate:t.atkRate, reward:t.reward,
+    atkCd:0, facing:1, animT:0, animF:0,
+    dead:false, stateTimer:0,
+    state:'chase', // chase | strafe | retreat
+  };
+  // Keep away from player spawn
+  npc.x = Math.max(PR+50, Math.min(WW-PR-50, npc.x));
+  npc.y = Math.max(PR+50, Math.min(WH-PR-50, npc.y));
+  SOLO_MODE.npcs.push(npc);
+  return npc;
+}
+
+function getWaveConfig(wave){
+  // wave 1: 3 skeletons, wave 2: 4 goblins, etc. Gets harder
+  const configs = [
+    [{type:0,count:5}],                                              // W1: 5 skeletons
+    [{type:0,count:4},{type:1,count:3}],                             // W2: 7
+    [{type:1,count:5},{type:2,count:2}],                             // W3: 7
+    [{type:2,count:4},{type:1,count:4}],                             // W4: 8
+    [{type:3,count:3},{type:2,count:3},{type:1,count:2}],            // W5: 8
+    [{type:3,count:4},{type:2,count:3},{type:0,count:3}],            // W6: 10
+    [{type:4,count:2},{type:3,count:3},{type:1,count:4}],            // W7: 9
+    [{type:5,count:4},{type:3,count:3},{type:2,count:2}],            // W8: 9
+    [{type:4,count:3},{type:5,count:3},{type:3,count:3}],            // W9: 9
+    [{type:6,count:1},{type:4,count:2},{type:3,count:4},{type:2,count:3}], // W10 BOSS: 10
+  ];
+  if(wave <= configs.length) return configs[wave-1];
+  // Endless scaling — gets brutal fast
+  const extra = wave - configs.length;
+  return [
+    {type:6,count:1+Math.floor(extra/3)},
+    {type:Math.min(4+Math.floor(extra/2),6),count:3+extra},
+    {type:Math.min(extra,6),count:2+extra}
+  ];
+}
+
+function startWave(){
+  SOLO_MODE.wave++;
+  SOLO_MODE.waveKills = 0;
+  SOLO_MODE.waveClearPending = false;
+  SOLO_MODE.waveSpawned = false;  // blocks clear-check until all NPCs are in array
+  SOLO_MODE.npcs = [];
+  const cfg = getWaveConfig(SOLO_MODE.wave);
+  const spawns = [];
+  cfg.forEach(({type,count})=>{
+    for(let i=0;i<count;i++) spawns.push(type);
+  });
+  const total = spawns.length;
+  SOLO_MODE.waveTarget = total;
+  const wd = document.getElementById('waveDisplay');
+  if(wd){ wd.style.display='block'; wd.textContent='⚔️ Wave '+SOLO_MODE.wave+' — '+total+' enemies!'; }
+  feed('🌊 Wave '+SOLO_MODE.wave+' — '+total+' enemies incoming!','s');
+  // Spawn with stagger — mark waveSpawned ONLY after last NPC added
+  spawns.forEach((type,i)=>{
+    const edge = Math.floor(Math.random()*4);
+    let sx, sy;
+    if(edge===0){ sx=50+Math.random()*(WW-100); sy=80; }
+    else if(edge===1){ sx=50+Math.random()*(WW-100); sy=WH-80; }
+    else if(edge===2){ sx=80; sy=50+Math.random()*(WH-100); }
+    else { sx=WW-80; sy=50+Math.random()*(WH-100); }
+    setTimeout(()=>{
+      if(!SOLO_MODE.active || gameOver) return;
+      spawnNPC(type, sx, sy);
+      if(i === total-1) SOLO_MODE.waveSpawned = true;  // last NPC spawned
+    }, 400 + i*350);
+  });
+  setTimeout(()=>{ const wd=document.getElementById('waveDisplay'); if(wd) wd.textContent='⚔️ Wave '+SOLO_MODE.wave; }, 3000);
+}
+
+function startSolo(){
+  const name = document.getElementById('nameInput').value.trim()||'Wizard';
+  gs.name = name; gs.cls = selCls; gs.room = gs.room || 'EMBER';
+  SOLO_MODE.active = true; SOLO_MODE.wave = 0; SOLO_MODE.npcs = []; SOLO_MODE.score = 0;
+  players = {};
+  // Build fake spawns so startGame places me at center
+  // Use corner spawn — center of map is blocked by the central keep tower
+  const fakeSpawns = {}; fakeSpawns[myId] = SPAWN_PTS[0];
+  // startGame handles canvas, input listeners, ability bar, camera, loop
+  startGame(fakeSpawns, 'EMBER');
+  // Override the multiplayer loop with solo loop
+  gs.running = true;
+  const wd = document.getElementById('waveDisplay');
+  if(wd) wd.style.display = 'block';
+  document.getElementById('killGoalBadge').textContent = '🌊 Survive the waves!';
+  // Kill the multiplayer rAF and start solo one
+  // (startGame already called rAF(loop) — we let it run one frame then hijack)
+  setTimeout(()=>{
+    gs.running = true; // ensure still running
+    startWave();
+  }, 1200);
+}
+
+
+function updateSolo(dt){
+  if(!me) return;
+
+  // Dead — just update camera/particles while endSolo() fires
+  if(me.dead){
+    camX += (me.x-W/2-camX)*0.1; camY += (me.y-H/2-camY)*0.1;
+    camX=Math.max(0,Math.min(WW-W,camX)); camY=Math.max(0,Math.min(WH-H,camY));
+    updateParticles(dt); return;
+  }
+
+  // Status effects
+  if(invisible){ invisT-=dt; if(invisT<=0){invisible=false;feed('👁 Visible again','');} }
+  if(empowered && Date.now()>empoweredT){ empowered=false; }
+  if(me.rooted && me.rootedUntil && Date.now()>=me.rootedUntil) me.rooted=false;
+
+  // Movement
+  let dx=0,dy=0;
+  if(!(me.rooted && me.rootedUntil && Date.now()<me.rootedUntil)){
+    if(keys['a']||keys['arrowleft'])  dx-=1;
+    if(keys['d']||keys['arrowright']) dx+=1;
+    if(keys['w']||keys['arrowup'])    dy-=1;
+    if(keys['s']||keys['arrowdown'])  dy+=1;
+  }
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  if(dx!==0) me.facing=dx>0?1:-1;
+  const spd=PSPD*(inGrass?0.72:1);
+  let nx=me.x+dx*spd*dt, ny=me.y+dy*spd*dt;
+  if(!hitBuilding(nx,me.y,PR)) me.x=nx;
+  if(!hitBuilding(me.x,ny,PR)) me.y=ny;
+  me.x=Math.max(PR,Math.min(WW-PR,me.x));
+  me.y=Math.max(PR,Math.min(WH-PR,me.y));
+  inGrass=isInGrass(me.x,me.y); me.inGrass=inGrass;
+  document.getElementById('hiddenBadge').classList.toggle('active',inGrass);
+
+  // Bob animation
+  me.animT+=dt; me.animF=Math.sin(me.animT*6)*3;
+
+  // Camera
+  camX+=(me.x-W/2-camX)*0.1; camY+=(me.y-H/2-camY)*0.1;
+  camX=Math.max(0,Math.min(WW-W,camX)); camY=Math.max(0,Math.min(WH-H,camY));
+
+  // Update NPCs
+  const aliveNPCs = SOLO_MODE.npcs.filter(n=>!n.dead);
+  aliveNPCs.forEach(npc=>updateNPC(npc,dt));
+
+  // Projectile vs NPC collision (player-owned projs hit NPCs)
+  for(let i=projs.length-1;i>=0;i--){
+    const p=projs[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
+    if(p.life<=0||hitBuilding(p.x,p.y,p.r)){spawnParticles(p.x,p.y,p.color,6);projs.splice(i,1);continue;}
+    if(p.owner===myId){
+      let hit=false;
+      for(const npc of aliveNPCs){
+        if(npc.dead) continue;
+        const ddx=p.x-npc.x,ddy=p.y-npc.y;
+        if(ddx*ddx+ddy*ddy<(PR+p.r)**2){
+          hit=true;
+          const fd=p.stealthBonus?p.dmg*2:p.dmg;
+          npcTakeDamage(npc,fd,p.color);
+          dmgDealt+=fd;
+          addFloat(npc.x,npc.y,'-'+fd,p.color);
+          spawnParticles(p.x,p.y,p.color,10);
+          // Burn DoT from proj
+          if(p.dotDmg&&p.dotTicks){
+            let dt2=0;
+            const bi=setInterval(()=>{
+              if(npc.dead||dt2>=p.dotTicks){clearInterval(bi);return;}
+              npcTakeDamage(npc,p.dotDmg,'#ff4500'); dt2++;
+            },p.dotInterval||800);
+          }
+          if(p.rootDur){ npc.rooted=true; npc.rootedUntil=Date.now()+p.rootDur; }
+          break;
+        }
+      }
+      if(hit){projs.splice(i,1);}
+    }
+  }
+
+  // Check wave clear — use flag to prevent firing every frame
+  const stillAlive = SOLO_MODE.npcs.filter(n=>!n.dead).length;
+  if(stillAlive===0 && SOLO_MODE.wave>0 && !gameOver && !SOLO_MODE.waveClearPending && SOLO_MODE.waveSpawned){
+    SOLO_MODE.waveClearPending = true;
+    feed('✅ Wave '+SOLO_MODE.wave+' cleared! +'+SOLO_MODE.waveKills*5+' bonus','h');
+    SOLO_MODE.score += SOLO_MODE.waveKills*5;
+    const wd=document.getElementById('waveDisplay');
+    if(wd) wd.textContent='✅ Wave '+SOLO_MODE.wave+' cleared!';
+    setTimeout(()=>{ if(!gameOver && SOLO_MODE.active){ SOLO_MODE.waveClearPending=false; startWave(); } }, 3500);
+  }
+
+  updateParticles(dt);
+  updateHUD();
+}
+
+function updateNPC(npc, dt){
+  if(npc.dead||!me||me.dead) return;
+  npc.animT+=dt; npc.animF=Math.sin(npc.animT*6)*3;
+
+  // Unroot
+  if(npc.rooted && npc.rootedUntil && Date.now()>=npc.rootedUntil) npc.rooted=false;
+
+  const dx=me.x-npc.x, dy=me.y-npc.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+
+  // State machine — lose sight of player when hidden in grass
+  npc.stateTimer-=dt;
+  if(inGrass){
+    // Player hidden — wander, don't chase directly
+    npc.state='wander';
+    if(!npc.wanderAngle || npc.stateTimer<=0){
+      npc.wanderAngle = Math.random()*Math.PI*2;
+      npc.stateTimer = 1.5+Math.random()*1.5;
+    }
+  } else if(npc.stateTimer<=0){
+    if(dist<250) npc.state=Math.random()<0.3?'retreat':'strafe';
+    else npc.state='chase';
+    npc.stateTimer=0.8+Math.random()*1.2;
+  }
+
+  // Movement
+  if(!(npc.rooted)){
+    let mx=0,my=0;
+    if(npc.state==='wander'){
+      mx=Math.cos(npc.wanderAngle||0); my=Math.sin(npc.wanderAngle||0);
+    } else if(npc.state==='chase'){
+      mx=dx/dist; my=dy/dist;
+    } else if(npc.state==='strafe'){
+      mx=-dy/dist; my=dx/dist;
+      if(Math.random()<0.01) npc.strafeDir=(npc.strafeDir||1)*-1;
+      mx*=(npc.strafeDir||1); my*=(npc.strafeDir||1);
+    } else { // retreat
+      mx=-dx/dist; my=-dy/dist;
+    }
+    const s=npc.spd*dt;
+    let nx=npc.x+mx*s, ny=npc.y+my*s;
+    if(!hitBuilding(nx,npc.y,PR)) npc.x=nx;
+    if(!hitBuilding(npc.x,ny,PR)) npc.y=ny;
+    npc.x=Math.max(PR,Math.min(WW-PR,npc.x));
+    npc.y=Math.max(PR,Math.min(WH-PR,npc.y));
+    if(mx!==0) npc.facing=mx>0?1:-1;
+  }
+
+  // Grass stealth: if player is in grass, NPC loses track — wanders
+  if(inGrass){
+    // Wander randomly, don't attack
+    npc.state='chase'; // keep moving but toward last position
+    npc.atkCd = Math.max(npc.atkCd, npc.atkRate); // reset attack timer
+    return; // skip attack
+  }
+
+  // Attack — shoot projectile toward player
+  npc.atkCd-=dt;
+  if(npc.atkCd<=0 && dist<npc.range){
+    npc.atkCd=npc.atkRate;
+    const angle=Math.atan2(me.y-npc.y, me.x-npc.x);
+    const speed=320+Math.random()*60;
+    // Small spread for realism
+    const spread=(Math.random()-0.5)*0.15;
+    projs.push({
+      x:npc.x, y:npc.y,
+      vx:Math.cos(angle+spread)*speed,
+      vy:Math.sin(angle+spread)*speed,
+      r:7, life:npc.range/speed+0.2,
+      dmg:npc.dmg, color:npc.color,
+      owner:npc.id,  // NOT myId — won't trigger player hit detection above
+      bounce:false, rootDur:0, dotDmg:0, dotTicks:0, stealthBonus:false,
+      isNPC:true
+    });
+  }
+
+  // NPC projectile hits player
+  for(let i=projs.length-1;i>=0;i--){
+    const p=projs[i];
+    if(!p.isNPC) continue;
+    const px=p.x-me.x, py=p.y-me.y;
+    if(px*px+py*py<(PR+p.r)**2){
+      // Absorb block
+      if(nextHitBlock){
+        nextHitBlock=false;
+        spawnParticles(me.x,me.y,'#fff',16);
+        addFloat(me.x,me.y,'🛡️ BLOCKED!','#fff');
+        feed('🛡️ '+nextHitBlockAb+' blocked the hit!','h');
+        nextHitBlockAb=null;
+        projs.splice(i,1); continue;
+      }
+      me.hp=Math.max(0,me.hp-p.dmg);
+      spawnParticles(me.x,me.y,'#f87171',8);
+      addFloat(me.x,me.y,'-'+p.dmg,'#f87171');
+      projs.splice(i,1);
+      if(me.hp<=0 && !me.dead){
+        me.dead=true;
+        const killer = getNPCById(p.owner);
+        feed('💀 Killed by '+(killer?killer.name:'an enemy')+'!','d');
+        setTimeout(()=>endSolo(), 800);
+      }
+      break;
+    }
+  }
+
+  // Ability cooldown UI
+  const _now = Date.now();
+  for(let _i=0;_i<3;_i++){
+    const _rem = Math.max(0, abCDs[_i]-_now);
+    const _el = document.getElementById('ab'+_i);
+    const _cd = document.getElementById('ab'+_i+'c');
+    if(!_el||!_cd) continue;
+    if(_rem>0){
+      _el.className='ab-slot cd';
+      _cd.style.display='flex'; _cd.textContent=Math.ceil(_rem/1000);
+    } else {
+      _el.className='ab-slot rdy';
+      _cd.style.display='none';
+    }
+    _el.style.borderColor = CLASSES[gs.cls].color+'88';
+    _el.style.boxShadow = '0 0 10px '+CLASSES[gs.cls].color+'33';
+  }
+  updateHUD();
+}
+
+function getNPCById(id){ return SOLO_MODE.npcs.find(n=>n.id===id); }
+
+function npcTakeDamage(npc, dmg, color){
+  if(npc.dead) return;
+  npc.hp -= dmg;
+  spawnParticles(npc.x,npc.y,color||npc.color,6);
+  if(npc.hp<=0){
+    npc.dead=true;
+    npc.hp=0;
+    kills++;
+    SOLO_MODE.waveKills++;
+    SOLO_MODE.score+=npc.reward;
+    killBoard[myId]=(killBoard[myId]||0)+1;
+    spawnParticles(npc.x,npc.y,npc.color,24);
+    addFloat(npc.x,npc.y,'☠️ +'+npc.reward,'#facc15');
+    feed('☠️ '+npc.name+' slain! +'+npc.reward+' pts','s');
+    const wd=document.getElementById('waveDisplay');
+    const alive=SOLO_MODE.npcs.filter(n=>!n.dead).length;
+    if(wd) wd.textContent='⚔️ Wave '+SOLO_MODE.wave+' — '+alive+' left';
+    updateHUD();
+  }
+}
+
+// Draw NPCs using same drawPlayer style but with NPC color and HP bar
+function drawNPCs(){
+  if(!SOLO_MODE.active) return;
+  SOLO_MODE.npcs.forEach(npc=>{
+    if(npc.dead) return;
+    // Grass visibility rules:
+    // - NPC in grass + player outside grass = fully hidden
+    // - NPC in grass + player also in grass = visible (both hiding)
+    // - NPC outside grass = always visible
+    const npcInGrass = isInGrass(npc.x, npc.y);
+    if(npcInGrass && !inGrass) return;
+    const x=npc.x, y=npc.y+(npc.animF||0), r=PR;
+    ctx.save();
+    ctx.shadowColor=npc.color; ctx.shadowBlur=10;
+    ctx.fillStyle=npc.color;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    // Inner highlight
+    ctx.fillStyle='#fff'; ctx.globalAlpha=0.2;
+    ctx.beginPath(); ctx.arc(x-r*0.25,y-r*0.25,r*0.45,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // Red border
+    ctx.strokeStyle='#ff6060'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+    // Emoji
+    ctx.shadowBlur=0; ctx.font=(r*0.9)+'px serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff';
+    ctx.fillText(npc.em,x,y+1);
+    // Name tag
+    ctx.font='bold 10px Cinzel,serif'; ctx.fillStyle='#fca5a5';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.shadowColor='#000'; ctx.shadowBlur=4;
+    ctx.fillText(npc.name,x,y-r-14);
+    // HP bar
+    const bw=46,bh=5,bx=x-23,by=y-r-12;
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx,by,bw,bh);
+    const pct=Math.max(0,npc.hp/npc.maxHp);
+    ctx.fillStyle=pct>0.6?'#4ade80':pct>0.3?'#facc15':'#f87171';
+    ctx.fillRect(bx,by,bw*pct,bh);
+    // Rooted
+    if(npc.rooted&&npc.rootedUntil&&Date.now()<npc.rootedUntil){
+      ctx.strokeStyle='#bae6fd'; ctx.lineWidth=2; ctx.globalAlpha=0.7;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.arc(x,y,r+8,0,Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  });
+}
+
+// Override render() to also draw NPCs — patch in after players render
+// We'll call drawNPCs from the render function by patching it
+
+// Solo mode version of useAb/doMelee — no channel.publish, uses solo targets
+// The existing useAb/doMelee already work since they push to projs[]
+// and updateSolo handles proj vs NPC collision.
+// BUT: AOE abilities check players{}, not NPCs. Fix that.
+function soloAoeHit(cx,cy,range,dmg,color){
+  // Hit NPCs in range
+  SOLO_MODE.npcs.forEach(npc=>{
+    if(npc.dead) return;
+    const dx=npc.x-cx, dy=npc.y-cy;
+    if(dx*dx+dy*dy<range*range){
+      npcTakeDamage(npc,dmg,color);
+      dmgDealt+=dmg;
+      addFloat(npc.x,npc.y,'-'+dmg,color);
+    }
+  });
+}
+
+function soloNearestNPC(){
+  let best=null, bestD=Infinity;
+  SOLO_MODE.npcs.forEach(npc=>{
+    if(npc.dead) return;
+    const d=(npc.x-me.x)**2+(npc.y-me.y)**2;
+    if(d<bestD){bestD=d;best=npc;}
+  });
+  return best;
+}
+
+// Alive count for solo HUD
+function soloAliveCount(){
+  return SOLO_MODE.npcs.filter(n=>!n.dead).length;
+}
+
+function endSolo(){
+  if(gameOver) return;
+  gameOver=true; gs.running=false; SOLO_MODE.active=false;
+  setTimeout(()=>{
+    document.getElementById('goEm').textContent='💀';
+    const t=document.getElementById('goTitle');
+    t.textContent='💀 YOU DIED'; t.className='go-title lose';
+    document.getElementById('goSub').textContent='Survived to Wave '+SOLO_MODE.wave;
+    // Hide kills/dmg stats rows — just show score summary
+    const statsEl = document.getElementById('goStats');
+    if(statsEl) statsEl.style.display='none';
+    const lb=document.getElementById('goLeaderboard');
+    if(lb) lb.innerHTML=
+      '<div class="lb-title" style="font-size:1.1rem;margin-bottom:16px">Final Score</div>'+
+      '<div style="text-align:center;padding:8px 0">'+
+        '<div style="font-size:2.2rem;color:#facc15;font-family:Cinzel Decorative,serif;font-weight:900">'+SOLO_MODE.score+'</div>'+
+        '<div style="font-size:0.7rem;color:rgba(200,180,255,0.5);letter-spacing:0.15em;margin-top:4px">POINTS</div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:center;gap:32px;margin-top:12px">'+
+        '<div style="text-align:center"><div style="font-size:1.3rem;color:#f87171;font-weight:700">'+SOLO_MODE.wave+'</div><div style="font-size:0.65rem;color:rgba(200,180,255,0.4);letter-spacing:0.1em">WAVE</div></div>'+
+        '<div style="text-align:center"><div style="font-size:1.3rem;color:#4ade80;font-weight:700">'+kills+'</div><div style="font-size:0.65rem;color:rgba(200,180,255,0.4);letter-spacing:0.1em">KILLS</div></div>'+
+        '<div style="text-align:center"><div style="font-size:1.3rem;color:#38bdf8;font-weight:700">'+dmgDealt+'</div><div style="font-size:0.65rem;color:rgba(200,180,255,0.4);letter-spacing:0.1em">DAMAGE</div></div>'+
+      '</div>';
+    document.getElementById('goOverlay').style.display='flex';
+    const wd=document.getElementById('waveDisplay');
+    if(wd) wd.style.display='none';
+  },650);
+}
+
+
+function quitGame(){
+  if(!confirm('Quit to main menu?')) return;
+  gameOver = true;
+  gs.running = false;
+  // Clean up solo mode
+  if(SOLO_MODE.active){
+    SOLO_MODE.active = false;
+    SOLO_MODE.npcs = [];
+    SOLO_MODE.wave = 0;
+    const wd = document.getElementById('waveDisplay');
+    if(wd) wd.style.display = 'none';
+  }
+  // Clean up multiplayer
+  if(ably){ try{ pub('bye',{id:myId}); ably.close(); }catch(e){} ably=null; channel=null; }
+  // Reset state
+  players={}; me=null; projs=[]; particles=[];
+  kills=0; dmgDealt=0; inGrass=false; reviveTimer=0; killBoard={};
+  invisible=false; invisT=0; nextHitBlock=false; empowered=false;
+  gs.started=false;
+  // Hide game over overlay if open
+  const go = document.getElementById('goOverlay');
+  if(go) go.style.display='none';
+  const rb = document.getElementById('reviveBanner');
+  if(rb) rb.style.display='none';
+  showScreen('setupScreen');
+  document.getElementById('joinBtn').disabled = false;
+  setSt('');
+}
+
 </script>
 </body>
 </html>
