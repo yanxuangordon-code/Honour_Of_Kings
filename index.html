@@ -33,7 +33,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 /* CARD */
 .setup-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;
-  width:min(660px,100%);backdrop-filter:blur(20px);box-shadow:0 0 50px rgba(124,58,237,0.12);}
+  backdrop-filter:blur(20px);box-shadow:0 0 50px rgba(124,58,237,0.12);}
 .field-label{font-size:0.68rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);margin-bottom:7px;display:block;}
 input[type=text]{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(245,200,66,0.22);
   border-radius:8px;padding:10px 13px;color:#e2d9f3;font-family:'Cinzel',serif;font-size:0.88rem;
@@ -232,6 +232,45 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 .lb-name{flex:1;color:rgba(200,180,255,0.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .lb-row.lb-me .lb-name{color:#c4b5fd;}
 .lb-k{font-weight:700;font-size:0.76rem;margin-left:auto;}
+
+/* ── HORIZONTAL SETUP LAYOUT ── */
+.setup-horiz{
+  display:flex;
+  flex-direction:row;
+  gap:28px;
+  width:100%;
+  max-width:1100px;
+  align-items:flex-start;
+  padding:28px 24px;
+}
+.setup-left{
+  flex:0 0 420px;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.setup-right{
+  flex:1 1 0;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px 16px;
+  backdrop-filter:blur(20px);
+}
+.setup-left .title-wrap{margin-bottom:20px;text-align:left;}
+.setup-left input[type=text]{margin-bottom:16px;}
+.setup-left .servers-grid{margin-bottom:16px;}
+/* Override screen active to not constrain width */
+#setupScreen.active{padding:0;align-items:stretch;justify-content:center;}
+/* Responsive: stack on small screens */
+@media(max-width:780px){
+  .setup-horiz{flex-direction:column;padding:16px;}
+  .setup-left{flex:none;width:100%;}
+}
+/* Class grid 2 columns in right panel */
+.setup-right .class-grid{grid-template-columns:repeat(2,1fr);}
+@media(min-width:1000px){.setup-right .class-grid{grid-template-columns:repeat(2,1fr);}}
+
 </style>
 </head>
 <body>
@@ -239,43 +278,51 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 
 <!-- SETUP -->
 <div id="setupScreen" class="screen active">
+  <div class="setup-horiz">
 
-  <div class="title-wrap">
-    <div class="title-main">⚔️ Arcane Battlegrounds</div>
-    <div class="title-sub">8-Player · Free For All · Last Wizard Standing</div>
-  </div>
-  <div class="setup-card">
-    <input type="hidden" id="apiKey" value="Xzs3kg.thsRWQ:9li47YsyXwMHsq5_ZM-us7l3V_dI73zSLvdhdenllCs"/>
-    <label class="field-label">Your Wizard Name</label>
-    <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="16"/>
-    <label class="field-label" style="margin-bottom:9px">Choose your Mage Class</label>
-    <div class="class-grid" id="classGrid"></div>
-    <label class="field-label" style="margin-bottom:9px">Choose Server · Max 8 Players · Battle starts at 2</label>
-    <div class="servers-grid">
-      <div class="server-card sv-ember selected" data-server="EMBER" onclick="selServer(this)">
-        <div class="sv-check">✓</div>
-        <span class="sv-icon">🏰🔥</span><div class="sv-name">Ember Keep</div>
-        <div class="sv-theme">Volcanic fortress · lava rivers</div>
-        <div class="sv-ping"><span class="ping-dot green"></span>18ms</div>
-        <div class="sv-slots" id="sl-EMBER">0 / 8 wizards</div>
+    <!-- LEFT COLUMN: branding, name, servers, join -->
+    <div class="setup-left">
+      <div class="title-wrap">
+        <div class="title-main">⚔️ Arcane Battlegrounds</div>
+        <div class="title-sub">8-Player · Free For All · Last Wizard Standing</div>
       </div>
-      <div class="server-card sv-frost" data-server="FROST" onclick="selServer(this)">
-        <div class="sv-check">✓</div>
-        <span class="sv-icon">🏯❄️</span><div class="sv-name">Frost Citadel</div>
-        <div class="sv-theme">Frozen tundra · ice caves</div>
-        <div class="sv-ping"><span class="ping-dot green"></span>24ms</div>
-        <div class="sv-slots" id="sl-FROST">0 / 8 wizards</div>
+      <input type="hidden" id="apiKey" value="Xzs3kg.thsRWQ:9li47YsyXwMHsq5_ZM-us7l3V_dI73zSLvdhdenllCs"/>
+      <label class="field-label">Your Wizard Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="16"/>
+      <label class="field-label" style="margin-bottom:9px">Choose Server · Max 8 Players · Battle starts at 2</label>
+      <div class="servers-grid">
+        <div class="server-card sv-ember selected" data-server="EMBER" onclick="selServer(this)">
+          <div class="sv-check">✓</div>
+          <span class="sv-icon">🏰🔥</span><div class="sv-name">Ember Keep</div>
+          <div class="sv-theme">Volcanic fortress · lava rivers</div>
+          <div class="sv-ping"><span class="ping-dot green"></span>18ms</div>
+          <div class="sv-slots" id="sl-EMBER">0 / 8 wizards</div>
+        </div>
+        <div class="server-card sv-frost" data-server="FROST" onclick="selServer(this)">
+          <div class="sv-check">✓</div>
+          <span class="sv-icon">🏯❄️</span><div class="sv-name">Frost Citadel</div>
+          <div class="sv-theme">Frozen tundra · ice caves</div>
+          <div class="sv-ping"><span class="ping-dot green"></span>24ms</div>
+          <div class="sv-slots" id="sl-FROST">0 / 8 wizards</div>
+        </div>
+        <div class="server-card sv-shadow" data-server="SHADOW" onclick="selServer(this)">
+          <div class="sv-check">✓</div>
+          <span class="sv-icon">🌑💜</span><div class="sv-name">Shadow Sanctum</div>
+          <div class="sv-theme">Dark forest · void portals</div>
+          <div class="sv-ping"><span class="ping-dot yellow"></span>41ms</div>
+          <div class="sv-slots" id="sl-SHADOW">0 / 8 wizards</div>
+        </div>
       </div>
-      <div class="server-card sv-shadow" data-server="SHADOW" onclick="selServer(this)">
-        <div class="sv-check">✓</div>
-        <span class="sv-icon">🌑💜</span><div class="sv-name">Shadow Sanctum</div>
-        <div class="sv-theme">Dark forest · void portals</div>
-        <div class="sv-ping"><span class="ping-dot yellow"></span>41ms</div>
-        <div class="sv-slots" id="sl-SHADOW">0 / 8 wizards</div>
-      </div>
+      <button class="btn btn-primary" id="joinBtn" onclick="joinGame()">⚔️ Enter the Arena</button>
+      <div class="status-msg" id="setupStatus"></div>
     </div>
-    <button class="btn btn-primary" id="joinBtn" onclick="joinGame()">⚔️ Enter the Arena</button>
-    <div class="status-msg" id="setupStatus"></div>
+
+    <!-- RIGHT COLUMN: mage class picker -->
+    <div class="setup-right">
+      <label class="field-label" style="margin-bottom:12px;font-size:0.75rem">Choose your Mage Class</label>
+      <div class="class-grid" id="classGrid"></div>
+    </div>
+
   </div>
 </div>
 
@@ -839,6 +886,11 @@ function onPos(msg){
   p.x = d.x; p.y = d.y; p.facing = d.f; p.inGrass = d.g||false;
   if(d.hp !== undefined) p.hp = d.hp;
   if(d.dead !== undefined) p.dead = d.dead;
+  // Sync invisible from pos so late-joiners see correct state
+  if(d.inv !== undefined){
+    p.invisible = !!d.inv;
+    p.invisUntil = d.inv ? Date.now()+2000 : 0;
+  }
 }
 function onHps(msg){
   const d = msg.data;
@@ -1237,7 +1289,7 @@ function update(dt){
   syncT += dt*1000;
   if(syncT >= SYNC_MS){
     syncT = 0;
-    channel.publish('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:false});
+    channel.publish('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:false, inv:invisible&&invisT>0});
   }
 
   updateHUD();
@@ -1877,17 +1929,6 @@ function startFreezeSelf(dur){
   feed('❄️ Frozen! Cannot move for '+dur+'s','d');
 }
 
-function updateStatusEffects(dt){
-  // Invis timer
-  if(invisible){ invisTimer-=dt; if(invisTimer<=0){invisible=false;feed('👁 Visible again','');} }
-  // Frozen self
-  if(frozenSelf){ frozenSelfTimer-=dt; if(frozenSelfTimer<=0)frozenSelf=false; }
-  // Update frozen enemies
-  Object.keys(frozenTargets).forEach(id=>{
-    frozenTargets[id]-=dt;
-    if(frozenTargets[id]<=0) delete frozenTargets[id];
-  });
-}
 
 // =====================================================
 //  WIN / HUD
