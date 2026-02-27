@@ -854,6 +854,10 @@ function onAnn(msg){
   if(Object.keys(players).length >= MAX_P-1) return;
   players[d.id] = {id:d.id, name:d.name, cls:d.cls, t:d.t,
     x:0, y:0, hp:MAX_HP, facing:1, dead:false, animT:0, animF:0, inGrass:false, invisible:false, invisUntil:0};
+  // Re-announce ourselves so the newcomer can discover us (Ably has no message history)
+  channel.publish('ann', {id:myId, name:gs.name, cls:gs.cls, t:Date.now()});
+  // Also send current position immediately if we're in-game
+  if(me) channel.publish('pos',{id:myId, x:me.x, y:me.y, f:me.facing, hp:me.hp, g:inGrass, dead:me.dead||false, inv:invisible&&invisT>0});
   refreshLobby();
   const all = [...Object.keys(players), myId].sort();
   if(!gs.started && all.length >= 2){
@@ -886,11 +890,9 @@ function onPos(msg){
   p.x = d.x; p.y = d.y; p.facing = d.f; p.inGrass = d.g||false;
   if(d.hp !== undefined) p.hp = d.hp;
   if(d.dead !== undefined) p.dead = d.dead;
-  // Sync invisible from pos so late-joiners see correct state
-  if(d.inv !== undefined){
-    p.invisible = !!d.inv;
-    p.invisUntil = d.inv ? Date.now()+2000 : 0;
-  }
+  // Sync invisible from pos — always trust the broadcaster
+  p.invisible = !!d.inv;
+  p.invisUntil = d.inv ? Date.now()+3000 : 0;
 }
 function onHps(msg){
   const d = msg.data;
@@ -1461,10 +1463,14 @@ function render(){
 }
 
 function drawPlayer(p, isMe){
-  // Visibility: enemy is invisible only if their invisUntil has not expired
-  const enemyInvis = !isMe && p.invisible === true && (p.invisUntil||0) > Date.now();
-  if(enemyInvis) return;
-  // Self: show ghost when shadow-veiled
+  // Visibility: enemy invisible only if flag is true AND timer has not expired
+  const now_dv = Date.now();
+  if(!isMe && p.invisible && (p.invisUntil||0) > now_dv) return;
+  // If timer expired, clear the flag so it does not persist
+  if(!isMe && p.invisible && (p.invisUntil||0) <= now_dv){
+    p.invisible = false; p.invisUntil = 0;
+  }
+  // Self: ghost opacity when shadow-veiled
   const ghostAlpha = (isMe && invisible && invisT > 0) ? 0.32 : 1.0;
 
   const cf = CLASSES[p.cls] || CLASSES.pyromancer;
@@ -1567,12 +1573,6 @@ function renderMM(){
     mmctx.fillRect(g.x*sx,g.y*sy,g.w*sx,g.h*sy);
   });
 
-  // Enemy blips
-  Object.values(players).forEach(p=>{
-    if(p.dead || p.invisible) return;
-    mmctx.fillStyle=CLASSES[p.cls]?.color||'#f87171';
-    mmctx.beginPath(); mmctx.arc(p.x*sx,p.y*sy,2.5,0,Math.PI*2); mmctx.fill();
-  });
   // Me
   if(me){
     mmctx.fillStyle='#fff';
@@ -1971,8 +1971,12 @@ function updateHUD(){
   b.style.width=(pct*100)+'%';
   b.className='hud-bar hb-hp'+(pct<0.3?' low':pct<0.6?' mid':'');
   document.getElementById('myHpTxt').textContent=Math.max(0,me.hp)+' HP';
-  const alive=Object.values(players).filter(p=>!p.dead).length+(me&&!me.dead?1:0);
-  document.getElementById('aliveN').textContent=alive;
+  const othersAlive=Object.values(players).filter(p=>!p.dead).length;
+  const totalOthers=Object.keys(players).length;
+  const meAlive=(me&&!me.dead)?1:0;
+  const alive=othersAlive+meAlive;
+  const total=totalOthers+1;
+  document.getElementById('aliveN').textContent=alive+' / '+total;
 }
 
 const feedEls=[];
