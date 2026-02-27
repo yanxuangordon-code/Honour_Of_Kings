@@ -112,10 +112,10 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 .btn-leave{background:rgba(192,57,43,0.25);border:1px solid rgba(192,57,43,0.38);color:#fca5a5;
   border-radius:7px;padding:7px 14px;font-size:0.7rem;cursor:pointer;margin-top:10px;font-family:'Cinzel',serif;}
 
-#canvas{position:fixed;top:0;left:0;display:block;}
+#canvas{position:fixed;top:0;left:0;display:none;}
 
 /* HUD */
-#hud{position:fixed;inset:0;pointer-events:none;z-index:20;}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:20;display:none;}
 .hud-top{position:absolute;top:10px;left:50%;transform:translateX(-50%);
   display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.65);
   border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 14px;white-space:nowrap;}
@@ -213,6 +213,14 @@ input::placeholder{color:rgba(200,180,255,0.28);}
   text-align:center;animation:revivePulse 1s ease-in-out infinite;}
 @keyframes revivePulse{0%,100%{opacity:0.75;transform:translate(-50%,-50%) scale(1)}
   50%{opacity:1;transform:translate(-50%,-50%) scale(1.03);box-shadow:0 0 24px rgba(248,113,113,0.35);}}
+
+
+/* #setupCoins removed — now inline in card */
+
+
+
+
+
 /* Go leaderboard */
 .go-lboard{margin:14px 0;background:rgba(0,0,0,0.35);border-radius:10px;padding:10px;max-height:220px;overflow-y:auto;}
 .lb-title{font-family:"Cinzel Decorative",serif;font-size:0.78rem;color:var(--gold);text-align:center;margin-bottom:8px;letter-spacing:0.12em;}
@@ -231,6 +239,7 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 
 <!-- SETUP -->
 <div id="setupScreen" class="screen active">
+
   <div class="title-wrap">
     <div class="title-main">⚔️ Arcane Battlegrounds</div>
     <div class="title-sub">8-Player · Free For All · Last Wizard Standing</div>
@@ -283,7 +292,7 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 </div>
 
 <!-- GAME -->
-<div id="gameScreen" class="screen">
+<div id="gameScreen">
   <canvas id="canvas"></canvas>
   <div id="hud">
     <div class="hud-top">
@@ -340,6 +349,8 @@ input::placeholder{color:rgba(200,180,255,0.28);}
     <button class="btn btn-primary" onclick="resetGame()">⚔️ Play Again</button>
   </div>
 </div>
+
+
 </div>
 
 <script>
@@ -347,95 +358,153 @@ input::placeholder{color:rgba(200,180,255,0.28);}
 //  8 MAGE CLASSES
 // =====================================================
 const CLASSES={
-  // 🔥 PYROMANCER — big slow fireballs, wide AoE explosion, fire shield
-  pyromancer:{name:'Pyromancer',em:'🔥',color:'#ff6a00',glow:'rgba(255,106,0,0.55)',desc:'Explosive Fire Mage',
+
+  // ═══════════════════════════════════════════════════
+  // 🔥 PYROMANCER · FREE STARTER
+  //    Q: Inferno Orb — massive slow fireball, 3s burn DoT after hit
+  //    E: Magma Dash — dash forward + heal, scorching trail damages enemies
+  //    X: Counterburst — absorb next hit, explode it as fire AoE
+  // ═══════════════════════════════════════════════════
+  pyromancer:{name:'Pyromancer',em:'🔥',color:'#ff6a00',glow:'rgba(255,106,0,0.55)',
+    desc:'Explosive fire mage — burn, dash & absorb',price:0,
     melee:{dmg:20,range:380,speed:520,color:'#ff8c00',r:8},
     abilities:[
-      {name:'Inferno Ball',icon:'🔥',dmg:48,cd:3000,range:600,speed:380,type:'proj',color:'#ff4500',r:18,fx:'flame',
-       desc:'Slow huge fireball — massive radius, high damage'},
-      {name:'Eruption',   icon:'💥',dmg:35,cd:5500,range:260,type:'aoe', color:'#ff6a00',fx:'explosion',
-       desc:'Ground eruption around you — wide AoE burst'},
-      {name:'Flame Coat', icon:'🛡️',dmg:0, cd:9000,type:'shield',color:'#ff6a00',dur:5,fx:'shield',
-       desc:'Fire armor — blocks 80% damage for 5 seconds'},
+      {name:'Inferno Orb',   icon:'🔥',cd:2800,range:620,speed:370,type:'proj',color:'#ff4500',r:20,dmg:48,
+       dotDmg:12,dotTicks:3,dotInterval:800,
+       desc:'Massive slow fireball + burns enemy (12 dmg × 3 ticks = 36 bonus dmg)'},
+      {name:'Magma Dash',    icon:'🌋',cd:5000,dist:260,type:'trail_dash',color:'#ff6a00',healAmt:30,trailDmg:18,trailDur:1800,dmg:0,
+       desc:'Dash forward healing 30HP — burning trail deals 18 dmg to enemies you cross'},
+      {name:'Counterburst',  icon:'🛡️',cd:11000,dur:3.5,type:'absorb',color:'#ff4500',aoeRange:130,aoeDmg:65,dmg:0,
+       desc:'Block NEXT hit → release as 130px fire explosion dealing 65 dmg to all nearby'},
     ]},
-  // ❄️ FROST MAGE — fast needle shot, ice nova freeze ring, self heal
-  frostmage:{name:'Frost Mage',em:'❄️',color:'#38bdf8',glow:'rgba(56,189,248,0.5)',desc:'Icy Control Mage',
-    melee:{dmg:16,range:500,speed:680,color:'#7dd3fc',r:6},
+
+  // ═══════════════════════════════════════════════════
+  // ❄️ FROST MAGE · 80 coins
+  //    Q: Freeze Shot — fast bolt that freezes enemy solid for 2s
+  //    E: Ice Escape — dash AWAY from cursor + heal (panic button)
+  //    X: Blizzard Burst — AoE ring that slows + damages all nearby
+  // ═══════════════════════════════════════════════════
+  frostmage:{name:'Frost Mage',em:'❄️',color:'#38bdf8',glow:'rgba(56,189,248,0.5)',
+    desc:'Freeze enemies, escape backward, ice ring',price:80,
+    melee:{dmg:15,range:500,speed:700,color:'#7dd3fc',r:6},
     abilities:[
-      {name:'Frost Needle',icon:'❄️',dmg:28,cd:1800,range:850,speed:780,type:'proj',color:'#e0f2fe',r:6,fx:'ice',
-       desc:'Ultra-fast thin ice shard — longest range, rapid fire'},
-      {name:'Ice Ring',   icon:'🌨️',dmg:25,cd:6500,range:210,type:'aoe', color:'#bae6fd',fx:'nova',
-       desc:'Instant freeze ring — hits all nearby enemies'},
-      {name:'Glacial Mend',icon:'💙',dmg:-55,cd:10000,type:'heal',color:'#38bdf8',fx:'heal',
-       desc:'Emergency heal — restores 55 HP'},
+      {name:'Freeze Shot',   icon:'❄️',cd:2200,range:800,speed:780,type:'proj',color:'#e0f2fe',r:8,dmg:25,rootDur:2000,
+       desc:'Freezes target solid for 2 seconds — they cannot move or act at all'},
+      {name:'Ice Escape',    icon:'💨',cd:6000,dist:250,type:'heal_dash',dir:'escape',color:'#38bdf8',healAmt:30,dmg:0,
+       desc:'Dash BACKWARDS (away from cursor) + instantly heal 30HP — best escape in game'},
+      {name:'Blizzard Burst',icon:'🌨️',cd:5500,range:230,type:'aoe',color:'#bae6fd',dmg:30,
+       desc:'Ice ring explosion — hits all nearby enemies and deals 30 damage'},
     ]},
-  // 🌿 DRUID — triple vine shot, poison cloud AoE, giant heal
-  druid:{name:'Druid',em:'🌿',color:'#22c55e',glow:'rgba(34,197,94,0.5)',desc:'Nature Healer',
+
+  // ═══════════════════════════════════════════════════
+  // 🌿 DRUID · 80 coins
+  //    Q: Vine Lash — fires 3 bolts simultaneously
+  //    E: Spore Cloud — poison DoT on all enemies in range
+  //    X: Regrowth — biggest self-heal in the game
+  // ═══════════════════════════════════════════════════
+  druid:{name:'Druid',em:'🌿',color:'#22c55e',glow:'rgba(34,197,94,0.5)',
+    desc:'Triple bolts, poison cloud, massive 90HP heal',price:80,
     melee:{dmg:18,range:420,speed:460,color:'#86efac',r:9},
     abilities:[
-      {name:'Vine Lash',  icon:'🌿',dmg:22,cd:1400,range:580,speed:520,type:'proj',color:'#4ade80',r:11,fx:'nature',
-       desc:'Triple vine bolts — fires 3 in quick succession'},
-      {name:'Spore Blast',icon:'🍄',dmg:26,cd:5000,range:200,type:'aoe', color:'#86efac',fx:'thorn',
-       desc:'Toxic spore cloud — hits all enemies in wide zone'},
-      {name:'Ancient Bloom',icon:'🌸',dmg:-80,cd:11000,type:'heal',color:'#4ade80',fx:'heal',
-       desc:'Massive nature heal — largest heal in the game'},
+      {name:'Vine Lash',     icon:'🌿',cd:1600,range:580,speed:500,type:'proj',color:'#4ade80',r:11,dmg:22,spread:3,
+       desc:'Triple vine bolts — 3 bolts spread left/center/right simultaneously'},
+      {name:'Spore Cloud',   icon:'🍄',cd:5500,range:220,type:'dot_aoe',color:'#86efac',dmg:0,dotDmg:12,dotTicks:4,dotInterval:650,
+       desc:'Poison cloud — enemies in range take 12 dmg × 4 ticks (48 total) over 2.6s'},
+      {name:'Regrowth',      icon:'🌸',cd:12000,type:'heal',color:'#4ade80',dmg:-90,
+       desc:'Nature surge — restores 90HP. Largest heal in the entire game'},
     ]},
-  // 🌑 SHADOW MAGE — void bolt, teleport blink, soul drain vortex
-  shadowmage:{name:'Shadow Mage',em:'🌑',color:'#a855f7',glow:'rgba(168,85,247,0.55)',desc:'Dark Teleporting Mage',
+
+  // ═══════════════════════════════════════════════════
+  // 🌑 SHADOW MAGE · 120 coins
+  //    Q: Void Bolt — heavy dark orb, 2× dmg from invisibility
+  //    E: Shadow Veil — full invisibility 3.5s + first strike 2×
+  //    X: Soul Vortex — pull ALL enemies toward you then damage
+  // ═══════════════════════════════════════════════════
+  shadowmage:{name:'Shadow Mage',em:'🌑',color:'#a855f7',glow:'rgba(168,85,247,0.55)',
+    desc:'Vanish completely, teleport, pull enemies in',price:120,
     melee:{dmg:24,range:440,speed:540,color:'#c084fc',r:9},
     abilities:[
-      {name:'Void Bolt',  icon:'🌑',dmg:42,cd:2600,range:680,speed:460,type:'proj',color:'#6d28d9',r:14,fx:'void',
-       desc:'Dark orb — large slow bolt that implodes on hit'},
-      {name:'Shadow Blink',icon:'👻',dmg:0, cd:4000,type:'dash',color:'#a855f7',dist:260,fx:'blink',
-       desc:'Instant shadow step toward cursor — no cooldown trail'},
-      {name:'Soul Vortex',icon:'💀',dmg:40,cd:7000,range:260,type:'aoe', color:'#7c3aed',fx:'drain',
-       desc:'Dark vortex pulls in and damages all nearby'},
+      {name:'Void Bolt',     icon:'🌑',cd:2400,range:680,speed:455,type:'proj',color:'#6d28d9',r:14,dmg:44,
+       desc:'Heavy void orb — deals 2× damage (88!) if fired while invisible'},
+      {name:'Shadow Veil',   icon:'👻',cd:9000,dur:3.5,type:'invis',color:'#a855f7',dmg:0,
+       desc:'Vanish for 3.5s — completely invisible to all enemies. First hit = 2× damage'},
+      {name:'Soul Vortex',   icon:'🌀',cd:7000,range:285,type:'pull_aoe',color:'#7c3aed',dmg:40,
+       desc:'Dark vortex — sucks ALL enemies within 285px toward you then deals 40 damage'},
     ]},
-  // ⚡ STORM CALLER — chain lightning bolt, electric dash, storm nova
-  stormcaller:{name:'Storm Caller',em:'⚡',color:'#facc15',glow:'rgba(250,204,21,0.55)',desc:'Lightning Speed Mage',
-    melee:{dmg:18,range:520,speed:750,color:'#fef08a',r:7},
+
+  // ═══════════════════════════════════════════════════
+  // ⚡ STORM CALLER · 120 coins
+  //    Q: Chain Lightning — fastest bolt, BOUNCES to second enemy
+  //    E: Overcharge — next attack deals 3× its normal damage
+  //    X: Tempest Nova — widest AoE of any class (300px)
+  // ═══════════════════════════════════════════════════
+  stormcaller:{name:'Storm Caller',em:'⚡',color:'#facc15',glow:'rgba(250,204,21,0.55)',
+    desc:'Fastest bolt, 3× empower, widest AoE explosion',price:120,
+    melee:{dmg:18,range:520,speed:760,color:'#fef08a',r:7},
     abilities:[
-      {name:'Chain Lightning',icon:'⚡',dmg:35,cd:1600,range:820,speed:820,type:'proj',color:'#fef08a',r:7,fx:'lightning',
-       desc:'Fastest projectile — electric bolt at extreme speed'},
-      {name:'Thunder Dash',icon:'🌩️',dmg:0, cd:3500,type:'dash',color:'#facc15',dist:300,fx:'blink',
-       desc:'Longest dash — electric afterimage trail'},
-      {name:'Tempest Nova',icon:'🌪️',dmg:32,cd:6000,range:280,type:'aoe', color:'#facc15',fx:'lightning_nova',
-       desc:'Massive electric burst — widest AoE of all classes'},
+      {name:'Chain Lightning',icon:'⚡',cd:1600,range:820,speed:850,type:'proj',color:'#fef08a',r:7,dmg:35,bounce:true,
+       desc:'Fastest projectile — bounces to a 2nd nearby enemy on impact for 17 bonus dmg'},
+      {name:'Overcharge',    icon:'🔋',cd:8000,empDmgMult:3.0,empDur:5,type:'empower',color:'#facc15',dmg:0,
+       desc:'TRIPLE POWER — your very next attack (melee or spell) deals exactly 3× damage'},
+      {name:'Tempest Nova',  icon:'🌪️',cd:6000,range:300,type:'aoe',color:'#facc15',dmg:36,
+       desc:'Electric supernova — 300px radius, WIDEST AoE explosion of any class'},
     ]},
-  // 💀 NECROMANCER — skull projectile, bone shield, wide death pulse
-  necromancer:{name:'Necromancer',em:'💀',color:'#94a3b8',glow:'rgba(148,163,184,0.45)',desc:'Death & Undead Mage',
+
+  // ═══════════════════════════════════════════════════
+  // 💀 NECROMANCER · 150 coins
+  //    Q: Skull Bomb — biggest projectile, slow + heavy
+  //    E: Death Pact — sacrifice 30HP to nuke nearest enemy for 90
+  //    X: Grave Curse — DoT curse on all enemies in range
+  // ═══════════════════════════════════════════════════
+  necromancer:{name:'Necromancer',em:'💀',color:'#94a3b8',glow:'rgba(148,163,184,0.45)',
+    desc:'Skull bomb, sacrifice HP for damage, death curse',price:150,
     melee:{dmg:26,range:450,speed:490,color:'#cbd5e1',r:10},
     abilities:[
-      {name:'Skull Bomb', icon:'💀',dmg:45,cd:2800,range:640,speed:440,type:'proj',color:'#475569',r:15,fx:'death',
-       desc:'Homing skull bomb — large slow explosive projectile'},
-      {name:'Grave Barrier',icon:'🦴',dmg:0, cd:7500,type:'shield',color:'#94a3b8',dur:6,fx:'shield',
-       desc:'Bone fortress — strongest shield, 6 seconds duration'},
-      {name:'Death Wave', icon:'☠️',dmg:44,cd:7000,range:270,type:'aoe', color:'#334155',fx:'death_nova',
-       desc:'Reaping shockwave — highest AoE damage in game'},
+      {name:'Skull Bomb',    icon:'💀',cd:2800,range:640,speed:430,type:'proj',color:'#475569',r:18,dmg:52,
+       desc:'Biggest projectile — huge slow skull bomb, r:18 blast radius on impact'},
+      {name:'Death Pact',    icon:'💔',cd:6000,range:300,selfDmg:30,type:'sacrifice',color:'#94a3b8',dmg:90,
+       desc:'Sacrifice 30HP (cannot die from it) → deal 90 damage to nearest enemy'},
+      {name:'Grave Curse',   icon:'☠️',cd:7000,range:280,type:'dot_aoe',color:'#334155',dmg:0,dotDmg:15,dotTicks:4,dotInterval:700,
+       desc:'Death curse — 15 dmg × 4 ticks (60 total) on all enemies in range over 2.8s'},
     ]},
-  // 🩸 BLOOD MAGE — blood burst, blood dash, hemorrhage nova
-  bloodmage:{name:'Blood Mage',em:'🩸',color:'#f43f5e',glow:'rgba(244,63,94,0.55)',desc:'Berserker Sacrifice Mage',
-    melee:{dmg:32,range:400,speed:510,color:'#fb7185',r:11},
+
+  // ═══════════════════════════════════════════════════
+  // 🩸 BLOOD MAGE · 150 coins
+  //    Q: Crimson Orb — highest single-hit proj damage in game
+  //    E: Transfusion — steal HP directly from nearest enemy
+  //    X: Blood Surge — heal-dash toward cursor, blood trail explosion
+  // ═══════════════════════════════════════════════════
+  bloodmage:{name:'Blood Mage',em:'🩸',color:'#f43f5e',glow:'rgba(244,63,94,0.55)',
+    desc:'Steal life, massive proj, heal-dash',price:150,
+    melee:{dmg:30,range:400,speed:510,color:'#fb7185',r:11},
     abilities:[
-      {name:'Crimson Orb',icon:'🩸',dmg:55,cd:3200,range:640,speed:460,type:'proj',color:'#be123c',r:16,fx:'blood',
-       desc:'Biggest damage projectile — huge slow blood orb'},
-      {name:'Blood Rush', icon:'💉',dmg:0, cd:5000,type:'dash',color:'#f43f5e',dist:220,fx:'blink',
-       desc:'Frenzied charge — burst of blood particles on exit'},
-      {name:'Hemorrhage', icon:'🔴',dmg:38,cd:6500,range:240,type:'aoe', color:'#e11d48',fx:'blood_nova',
-       desc:'Blood explosion — damages all nearby with splatter'},
+      {name:'Crimson Orb',   icon:'🩸',cd:3200,range:640,speed:445,type:'proj',color:'#be123c',r:18,dmg:60,
+       desc:'Biggest damage projectile — 60 dmg, huge blood orb, highest proj dmg in game'},
+      {name:'Transfusion',   icon:'🫀',cd:6000,range:260,type:'lifesteal',color:'#f43f5e',dmg:45,stealAmt:45,
+       desc:'Drain LIFE — deal 45 dmg to nearest enemy AND heal yourself for 45 HP'},
+      {name:'Blood Surge',   icon:'💉',cd:5000,dist:245,type:'heal_dash',dir:'toward',color:'#f43f5e',healAmt:38,dmg:0,
+       desc:'Frenzied dash + heal 38HP — blood explosion at landing damages nearby enemies'},
     ]},
-  // 💫 ARCANIST — triple arcane shard, mana shield, arcane surge
-  arcanist:{name:'Arcanist',em:'💫',color:'#c084fc',glow:'rgba(192,132,252,0.5)',desc:'Pure Arcane Power',
+
+  // ═══════════════════════════════════════════════════
+  // 💫 ARCANIST · 200 coins
+  //    Q: Arcane Shard — fires 3-way spread simultaneously
+  //    E: Mirror Image — NEXT hit you receive deals ZERO damage
+  //    X: Arcane Nova — highest AoE damage in game (55 dmg)
+  // ═══════════════════════════════════════════════════
+  arcanist:{name:'Arcanist',em:'💫',color:'#c084fc',glow:'rgba(192,132,252,0.5)',
+    desc:'3-way spread, nullify next hit, arcane nuke',price:200,
     melee:{dmg:22,range:460,speed:580,color:'#e879f9',r:9},
     abilities:[
-      {name:'Arcane Shard',icon:'💫',dmg:32,cd:2000,range:720,speed:600,type:'proj',color:'#d946ef',r:10,fx:'arcane',
-       desc:'Three arcane shards — fires a spread of 3 bolts'},
-      {name:'Mana Shell',  icon:'🔮',dmg:0, cd:8000,type:'shield',color:'#c084fc',dur:4,fx:'shield',
-       desc:'Arcane ward — reflects 25% dmg back to attacker'},
-      {name:'Arcane Nova', icon:'✨',dmg:50,cd:8500,range:290,type:'aoe', color:'#a855f7',fx:'arcane_nova',
-       desc:'Arcane supernova — highest single-cast AoE damage'},
+      {name:'Arcane Shard',  icon:'💫',cd:2000,range:720,speed:600,type:'proj',color:'#d946ef',r:10,dmg:32,spread:3,
+       desc:'Three arcane shards at once — spread fires LEFT, CENTER and RIGHT simultaneously'},
+      {name:'Mirror Image',  icon:'🪞',cd:9000,dur:5,type:'absorb',color:'#c084fc',aoeRange:100,aoeDmg:0,dmg:0,
+       desc:'Phase out 5s — NEXT hit you receive deals ZERO damage and shatters harmlessly'},
+      {name:'Arcane Nova',   icon:'✨',cd:8500,range:295,type:'aoe',color:'#a855f7',dmg:55,
+       desc:'Arcane supernova — 55 dmg, 295px range, HIGHEST single AoE damage in game'},
     ]},
 };
+
 const CLASS_KEYS=Object.keys(CLASSES);
 
 // =====================================================
@@ -605,18 +674,32 @@ let reviveTimer = 0;
 let mapData = null;
 let inGrass = false;
 
+// Status effects (single clean set)
+let invisible = false, invisT = 0;           // Shadow Veil invisibility
+let nextHitBlock = false, nextHitBlockAb=null, nextHitBlockExpiry=0, nextHitBlockFrom=null; // Absorb / Mirror Image
+let empowered = false, empoweredT=0, empoweredMult=1; // Overcharge
+let burnTimers  = {};  // eid -> intervalId (burning enemies)
+let rootedUntil = {};  // eid -> timestamp (frozen enemies)
+let dotTimers   = {};  // eid -> intervalId (poison/curse enemies)
+
+// ── CLASS PRICES (removed — all classes free) ──────────────────────────────
+
 // =====================================================
-//  CLASS GRID
+//  CLASS GRID — all classes free, all selectable
 // =====================================================
 let selCls = 'pyromancer';
 function buildClassGrid(){
   const g = document.getElementById('classGrid');
   if(!g) return;
+  g.innerHTML = '';
   CLASS_KEYS.forEach(k => {
     const c = CLASSES[k];
     const d = document.createElement('div');
-    d.className = 'class-opt' + (k==='pyromancer' ? ' selected' : '');
-    d.innerHTML = '<span class="cem">'+c.em+'</span><span class="cnm">'+c.name+'</span><span class="cdesc">'+c.desc+'</span>';
+    d.className = 'class-opt' + (k===selCls?' selected':'');
+    d.innerHTML =
+      '<span class="cem">'+c.em+'</span>'+
+      '<span class="cnm">'+c.name+'</span>'+
+      '<span class="cdesc">'+c.desc+'</span>';
     d.onclick = () => {
       document.querySelectorAll('.class-opt').forEach(e=>e.classList.remove('selected'));
       d.classList.add('selected');
@@ -640,10 +723,15 @@ function setSt(m,t=''){
   e.textContent = m; e.className = 'status-msg '+t;
 }
 function showScreen(id){
-  ['setupScreen','lobbyScreen','gameScreen'].forEach(s=>{
-    const el = document.getElementById(s);
-    el.className = 'screen' + (s===id ? ' active' : '');
-  });
+  document.getElementById('setupScreen').className = 'screen'+(id==='setupScreen'?' active':'');
+  document.getElementById('lobbyScreen').className  = 'screen'+(id==='lobbyScreen'?' active':'');
+  const inGame = id==='gameScreen';
+  document.getElementById('gameScreen').style.display = inGame ? 'block' : 'none';
+  // Explicitly show/hide fixed-position children so they do not bleed onto other screens
+  const cv = document.getElementById('canvas');
+  const hd = document.getElementById('hud');
+  if(cv) cv.style.display = inGame ? 'block' : 'none';
+  if(hd) hd.style.display = inGame ? 'block' : 'none';
 }
 
 // =====================================================
@@ -718,7 +806,7 @@ function onAnn(msg){
   if(d.id===myId) return;
   if(Object.keys(players).length >= MAX_P-1) return;
   players[d.id] = {id:d.id, name:d.name, cls:d.cls, t:d.t,
-    x:0, y:0, hp:MAX_HP, facing:1, dead:false, animT:0, animF:0, inGrass:false};
+    x:0, y:0, hp:MAX_HP, facing:1, dead:false, animT:0, animF:0, inGrass:false, invisible:false, invisUntil:0};
   refreshLobby();
   const all = [...Object.keys(players), myId].sort();
   if(!gs.started && all.length >= 2){
@@ -763,25 +851,102 @@ function onAct(msg){
   if(d.type==='START'){if(!gs.running) startGame(d.spawns, d.room); return;}
   if(!gs.running) return;
   if(d.from===myId) return;
+
   if(d.type==='HIT' && d.to===myId && me && !me.dead){
-    let dmg = d.dmg; if(shieldOn) dmg = Math.floor(dmg*0.22);
-    me.hp = Math.max(0, me.hp - dmg);
-    spawnParticles(me.x, me.y, d.color||'#f87171', 8);
-    addFloat(me.x, me.y, '-'+dmg, d.color||'#f87171');
-    channel.publish('hps', {id:myId, hp:me.hp});
-    if(me.hp <= 0 && !me.dead){
-      me.dead = true; reviveTimer = REVIVE_DELAY;
-      channel.publish('go', {winner:d.from, loser:myId});
+    if(invisible) return; // invisible = cannot be hit
+    if(nextHitBlock){
+      // Absorb: completely block + explode back
+      nextHitBlock=false; shieldOn=false;
+      spawnParticles(me.x,me.y,'#c084fc',24);
+      addFloat(me.x,me.y,'🛡️ HARMLESS!','#c084fc');
+      feed('🛡️ Hit ABSORBED — harmless!','h');
+      // Reflect damage back to nearby enemies
+      const r2=80*80;
+      Object.values(players).forEach(en=>{
+        if(en.dead)return;
+        if((me.x-en.x)**2+(me.y-en.y)**2<r2){
+          channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:d.dmg,color:'#ff4500'});
+          dmgDealt+=d.dmg; en.hp=Math.max(0,en.hp-d.dmg);
+          addFloat(en.x,en.y,'-'+d.dmg+' REFLECTED','#ff4500');
+        }
+      });
+    } else {
+      let dmg=d.dmg; if(shieldOn) dmg=Math.floor(dmg*0.22);
+      me.hp=Math.max(0,me.hp-dmg);
+      spawnParticles(me.x,me.y,d.color||'#f87171',8);
+      addFloat(me.x,me.y,'-'+dmg,d.color||'#f87171');
+      channel.publish('hps',{id:myId,hp:me.hp});
+      if(me.hp<=0 && !me.dead){
+        me.dead=true; reviveTimer=REVIVE_DELAY;
+        channel.publish('go',{winner:d.from,loser:myId});
+        showReviveBanner();
+      }
+    }
+  }
+  if(d.type==='ROOT' && d.to===myId && me && !me.dead){
+    me.hp=Math.max(0,me.hp-(d.dmg||8));
+    me.rooted=true; me.rootedUntil=Date.now()+(d.dur||2000);
+    spawnParticles(me.x,me.y,'#bae6fd',22);
+    addFloat(me.x,me.y,'❄️ FROZEN!','#bae6fd');
+    feed('❄️ Frozen — cannot move!','d');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    setTimeout(()=>{ if(me){me.rooted=false;} }, d.dur||2000);
+  }
+  if(d.type==='PULL' && d.to===myId && me && !me.dead){
+    me.x=d.toX||me.x; me.y=d.toY||me.y;
+    me.hp=Math.max(0,me.hp-(d.dmg||0));
+    spawnParticles(me.x,me.y,d.color||'#7c3aed',12);
+    addFloat(me.x,me.y,'-'+(d.dmg||0)+' PULLED','#7c3aed');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    if(me.hp<=0 && !me.dead){
+      me.dead=true; reviveTimer=REVIVE_DELAY;
+      channel.publish('go',{winner:d.from,loser:myId});
       showReviveBanner();
+    }
+  }
+  if(d.type==='INVIS'){
+    const p=players[d.from];
+    if(p){
+      if(d.on){
+        p.invisible=true;
+        p.invisUntil=Date.now()+5000; // max 5s safety expiry
+      } else {
+        p.invisible=false;
+        p.invisUntil=0;
+      }
     }
   }
   if(d.type==='PROJ'){
     const dx=d.tx-d.sx, dy=d.ty-d.sy, dist=Math.sqrt(dx*dx+dy*dy)||1;
-    projs.push({x:d.sx, y:d.sy, vx:(dx/dist)*d.sp, vy:(dy/dist)*d.sp,
+    projs.push({x:d.sx,y:d.sy,
+      vx:(dx/dist)*d.sp, vy:(dy/dist)*d.sp,
       r:d.r||8, life:d.life||1.2, dmg:0, color:d.col, owner:d.from});
   }
   if(d.type==='FX') spawnParticles(d.x, d.y, d.color, 16);
+  if(d.type==='ROOT' && d.to===myId && me && !me.dead){
+    // We got rooted — freeze self movement
+    frozenSelf=true; frozenSelfTimer=d.dur/1000;
+    let dmgR=d.dmg||8; if(shieldOn)dmgR=Math.floor(dmgR*0.22);
+    me.hp=Math.max(0,me.hp-dmgR);
+    spawnParticles(me.x,me.y,'#bae6fd',16);
+    addFloat(me.x,me.y,'❄️ FROZEN!','#bae6fd');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    feed('❄️ Frozen! Can\'t move for '+(d.dur/1000).toFixed(1)+'s','d');
+  }
+  if(d.type==='PULL' && d.to===myId && me && !me.dead){
+    me.x=d.toX||me.x; me.y=d.toY||me.y;
+    let dmgP=d.dmg||0; if(shieldOn)dmgP=Math.floor(dmgP*0.22);
+    me.hp=Math.max(0,me.hp-dmgP);
+    spawnParticles(me.x,me.y,'#7c3aed',12);
+    if(dmgP>0)addFloat(me.x,me.y,'-'+dmgP,'#7c3aed');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    if(me.hp<=0&&!me.dead){me.dead=true;reviveTimer=REVIVE_DELAY;channel.publish('go',{winner:d.from,loser:myId});showReviveBanner();}
+  }
+  if(d.type==='INVIS' && players[d.from]){
+    players[d.from].invisible = d.on;
+  }
 }
+
 function onGo(msg){
   if(!gs.running) return;
   const d = msg.data;
@@ -792,7 +957,7 @@ function onGo(msg){
   if(d.loser===myId && me && !me.dead){
     me.dead = true; reviveTimer = REVIVE_DELAY; showReviveBanner();
   }
-  if(d.loser && players[d.loser]) players[d.loser].dead = true;
+  if(d.loser && players[d.loser]){ players[d.loser].dead = true; players[d.loser].invisible = false; players[d.loser].invisUntil = 0; }
   if(d.winner===myId){
     kills++; killBoard[myId] = kills;
     feed('☠️ You got '+(players[d.loser]?.name||'a wizard')+'! ('+kills+'/'+KILL_GOAL+')', 's');
@@ -818,7 +983,7 @@ function startGame(spawns, room){
     const pcf = CLASSES[players[id].cls] || CLASSES.pyromancer;
     const psp = spawns[id] || SPAWN_PTS[1];
     players[id] = {...players[id], x:psp.x, y:psp.y, hp:MAX_HP,
-      dead:false, animT:0, animF:0, color:pcf.color, glow:pcf.glow, inGrass:false};
+      dead:false, animT:0, animF:0, color:pcf.color, glow:pcf.glow, inGrass:false, invisible:false, invisUntil:0};
   });
 
   abCDs=[0,0,0]; kills=0; dmgDealt=0; gameOver=false; shieldOn=false;
@@ -936,12 +1101,20 @@ function update(dt){
     return;
   }
 
+  // Status effect timers
+  if(invisible){ invisT-=dt; if(invisT<=0){invisible=false;feed('👁 Visible again','');
+    channel.publish('act',{type:'INVIS',from:myId,on:false});} }
+  if(empowered && Date.now()>empoweredT){ empowered=false; feed('⚡ Overcharge expired',''); }
+  if(me.rooted && me.rootedUntil && Date.now()>=me.rootedUntil) me.rooted=false;
   // Movement — WASD
   let dx=0, dy=0;
-  if(keys['a'] || keys['arrowleft'])  dx -= 1;
-  if(keys['d'] || keys['arrowright']) dx += 1;
-  if(keys['w'] || keys['arrowup'])    dy -= 1;
-  if(keys['s'] || keys['arrowdown'])  dy += 1;
+  const isRooted = me.rooted && me.rootedUntil && Date.now()<me.rootedUntil;
+  if(!isRooted){
+    if(keys['a'] || keys['arrowleft'])  dx -= 1;
+    if(keys['d'] || keys['arrowright']) dx += 1;
+    if(keys['w'] || keys['arrowup'])    dy -= 1;
+    if(keys['s'] || keys['arrowdown'])  dy += 1;
+  }
   if(dx && dy){ dx*=0.707; dy*=0.707; }
   if(dx !== 0) me.facing = dx > 0 ? 1 : -1;
 
@@ -975,19 +1148,63 @@ function update(dt){
     p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt;
     if(hitBuilding(p.x, p.y, p.r)){ spawnParticles(p.x,p.y,p.color,6); projs.splice(i,1); continue; }
     if(p.owner===myId){
-      let hit = false;
+      let hit = false, hitTarget = null;
       Object.values(players).forEach(en=>{
         if(hit || en.dead) return;
         const dx2=p.x-en.x, dy2=p.y-en.y;
         if(dx2*dx2+dy2*dy2 < (PR+p.r)**2){
-          hit = true;
-          channel.publish('act',{type:'HIT', from:myId, to:en.id, dmg:p.dmg, color:p.color});
-          dmgDealt += p.dmg; en.hp = Math.max(0, en.hp-p.dmg);
+          hit = true; hitTarget = en;
+          // Stealth bonus: Shadow Veil first strike = 2× dmg
+          const finalDmg = p.stealthBonus ? p.dmg*2 : p.dmg;
+          channel.publish('act',{type:'HIT', from:myId, to:en.id, dmg:finalDmg, color:p.color});
+          dmgDealt += finalDmg; en.hp = Math.max(0, en.hp-finalDmg);
           spawnParticles(p.x,p.y,p.color,12);
-          addFloat(p.x,p.y,'-'+p.dmg,p.color);
+          addFloat(en.x,en.y,'-'+finalDmg+(p.stealthBonus?' ⚡2×!':''),p.color);
+          if(p.stealthBonus) spawnParticles(p.x,p.y,'#a855f7',16);
+          // Pyromancer Inferno Orb — apply burn DoT
+          if(p.dotDmg && p.dotTicks){
+            let dtick=0;
+            const burnId = setInterval(()=>{
+              if(!gs.running||en.dead||dtick>=p.dotTicks){clearInterval(burnId);return;}
+              const bd=p.dotDmg;
+              channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:bd,color:'#ff4500'});
+              dmgDealt+=bd; en.hp=Math.max(0,en.hp-bd);
+              spawnParticles(en.x,en.y,'#ff4500',4);
+              addFloat(en.x,en.y,'-'+bd+' 🔥','#ff4500');
+              dtick++;
+            }, p.dotInterval||800);
+          }
+          // Freeze Shot — root target
+          if(p.rootDur){
+            en.rooted=true; en.rootedUntil=Date.now()+p.rootDur;
+            channel.publish('act',{type:'ROOT',from:myId,to:en.id,dur:p.rootDur,dmg:0});
+            spawnParticles(en.x,en.y,'#bae6fd',16);
+            addFloat(en.x,en.y,'❄️ FROZEN!','#bae6fd');
+          }
         }
       });
-      if(hit){ projs.splice(i,1); continue; }
+      if(hit){
+        // Chain Lightning bounce to 2nd enemy
+        if(p.bounce && hitTarget){
+          let second=null, nearD2=360*360;
+          Object.values(players).forEach(en=>{
+            if(en.dead||en===hitTarget)return;
+            const d=(p.x-en.x)**2+(p.y-en.y)**2;
+            if(d<nearD2){nearD2=d;second=en;}
+          });
+          if(second){
+            const bdmg=Math.floor(p.dmg*0.6);
+            const bangle=Math.atan2(second.y-p.y,second.x-p.x);
+            projs.push({x:p.x,y:p.y,
+              vx:Math.cos(bangle)*p.vx*1.2,vy:Math.sin(bangle)*p.vy*1.2||Math.cos(bangle)*600,
+              r:p.r*0.65,life:0.55,dmg:bdmg,color:'#fef08a',owner:myId,bounce:false,stealthBonus:false});
+            channel.publish('act',{type:'HIT',from:myId,to:second.id,dmg:bdmg,color:'#fef08a'});
+            dmgDealt+=bdmg; second.hp=Math.max(0,second.hp-bdmg);
+            addFloat(second.x,second.y,'-'+bdmg+' ⚡bounce','#fef08a');
+          }
+        }
+        projs.splice(i,1); continue;
+      }
     }
     if(p.life<=0 || p.x<0||p.x>WW||p.y<0||p.y>WH){ projs.splice(i,1); }
   }
@@ -1130,8 +1347,13 @@ function render(){
   });
 
   // Other players (behind grass top)
+  const now2 = Date.now();
   Object.values(players).forEach(p=>{
     if(p.dead) return;
+    // Auto-expire invisible flag if timer elapsed
+    if(p.invisible && p.invisUntil && now2 > p.invisUntil){
+      p.invisible = false; p.invisUntil = 0;
+    }
     const hidden = p.inGrass && !inGrass;
     if(!hidden) drawPlayer(p, false);
   });
@@ -1187,17 +1409,33 @@ function render(){
 }
 
 function drawPlayer(p, isMe){
+  // Visibility: enemy is invisible only if their invisUntil has not expired
+  const enemyInvis = !isMe && p.invisible === true && (p.invisUntil||0) > Date.now();
+  if(enemyInvis) return;
+  // Self: show ghost when shadow-veiled
+  const ghostAlpha = (isMe && invisible && invisT > 0) ? 0.32 : 1.0;
+
   const cf = CLASSES[p.cls] || CLASSES.pyromancer;
   const x = p.x;
   const y = p.y + (p.animF||0);
   const r = PR;
 
   ctx.save();
+  ctx.globalAlpha = ghostAlpha;
 
   // Glow
   ctx.shadowColor = cf.color;
   ctx.shadowBlur = isMe ? 18 : 10;
 
+  // Overcharge indicator
+  if(isMe && empowered){
+    ctx.strokeStyle='#facc15'; ctx.lineWidth=3;
+    ctx.globalAlpha=(0.7+Math.sin(Date.now()*0.02)*0.3)*ghostAlpha;
+    ctx.shadowColor='#facc15'; ctx.shadowBlur=20;
+    ctx.beginPath(); ctx.arc(x,y,r+16,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=ghostAlpha;
+    ctx.shadowBlur = isMe ? 18 : 10;
+  }
   // Shield ring
   if(isMe && shieldOn){
     ctx.strokeStyle='#fff'; ctx.lineWidth=2.5;
@@ -1235,6 +1473,15 @@ function drawPlayer(p, isMe){
   ctx.shadowColor='#000'; ctx.shadowBlur=4;
   ctx.fillText(p.name, x, y-r-6);
 
+  // Rooted — icy ring
+  if(p.rooted && Date.now()<(p.rootedUntil||0)){
+    ctx.strokeStyle='#bae6fd'; ctx.lineWidth=2.5;
+    ctx.globalAlpha=0.7;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.arc(x,y,r+8,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha=ghostAlpha;
+  }
   // HP bar
   const bw=48, bh=5, bx2=x-24, by2=y-r-22;
   ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx2,by2,bw,bh);
@@ -1268,10 +1515,20 @@ function renderMM(){
     mmctx.fillRect(g.x*sx,g.y*sy,g.w*sx,g.h*sy);
   });
 
+  // Enemy blips
+  Object.values(players).forEach(p=>{
+    if(p.dead || p.invisible) return;
+    mmctx.fillStyle=CLASSES[p.cls]?.color||'#f87171';
+    mmctx.beginPath(); mmctx.arc(p.x*sx,p.y*sy,2.5,0,Math.PI*2); mmctx.fill();
+  });
   // Me
   if(me){
     mmctx.fillStyle='#fff';
-    mmctx.beginPath(); mmctx.arc(me.x*sx,me.y*sy,3,0,Math.PI*2); mmctx.fill();
+    mmctx.beginPath(); mmctx.arc(me.x*sx,me.y*sy,3.5,0,Math.PI*2); mmctx.fill();
+    // Pulsing ring for me
+    mmctx.strokeStyle='rgba(255,255,255,0.4)';
+    mmctx.lineWidth=1;
+    mmctx.beginPath(); mmctx.arc(me.x*sx,me.y*sy,5+Math.sin(Date.now()*0.005)*2,0,Math.PI*2); mmctx.stroke();
   }
 
   // Camera rect
@@ -1293,12 +1550,18 @@ function doMelee(){
   const wx = mX + camX, wy = mY + camY;
   const angle = Math.atan2(wy-me.y, wx-me.x);
   const life = mel.range / mel.speed;
+  const invisBonus = invisible ? 2.0 : 1.0; // Shadow Veil bonus
+  const eDmg = empowered ? Math.floor(mel.dmg*empoweredMult*invisBonus) : Math.floor(mel.dmg*invisBonus);
+  const eCol = empowered ? '#facc15' : mel.color;
+  if(empowered){empowered=false;empoweredMult=1;spawnParticles(me.x,me.y,'#facc15',20);addFloat(me.x,me.y,'⚡ 3×!','#facc15');}
+  if(invisible&&invisBonus>1){invisible=false;invisT=0;me.invisible=false;channel.publish('act',{type:'INVIS',from:myId,on:false});feed('👁 Visible — strike bonus!','s');}
   projs.push({x:me.x, y:me.y,
     vx:Math.cos(angle)*mel.speed, vy:Math.sin(angle)*mel.speed,
-    r:mel.r, life, dmg:mel.dmg, color:mel.color, owner:myId});
+    r:mel.r+(empowered?4:0), life, dmg:eDmg, color:eCol, owner:myId,
+    bounce:false, rootDur:0, dotDmg:0, dotTicks:0, stealthBonus:false});
   channel.publish('act',{type:'PROJ', from:myId,
     sx:me.x, sy:me.y, tx:wx, ty:wy,
-    sp:mel.speed, col:mel.color, r:mel.r, life});
+    sp:mel.speed, col:eCol, r:mel.r, life});
   spawnParticles(me.x,me.y,mel.color,5);
 }
 
@@ -1308,71 +1571,322 @@ function useAb(idx){
   if(abCDs[idx]>now) return;
   const ab = CLASSES[gs.cls].abilities[idx];
   abCDs[idx] = now + ab.cd;
-  const wx = mX + camX, wy = mY + camY;
+  const wx = mX+camX, wy = mY+camY;
   const angle = Math.atan2(wy-me.y, wx-me.x);
 
+  // ── PROJECTILE (supports spread multiplier) ──────────────────────────────
   if(ab.type==='proj'){
     const life = ab.range/ab.speed;
-    // Special: Druid fires 3 spread bolts
-    const shots = (gs.cls==='druid'&&idx===0) ? [-0.18,0,0.18]
-                : (gs.cls==='arcanist'&&idx===0) ? [-0.22,0,0.22]
-                : [0];
-    shots.forEach((spread,t)=>{
+    const shots = ab.spread===3 ? [-0.22,0,0.22] : [0];
+    const dmgEach = shots.length>1 ? Math.floor(ab.dmg*0.72) : ab.dmg;
+    // Apply empower to first shot
+    let thisDmg = empowered ? Math.floor(dmgEach*empoweredMult) : dmgEach;
+    if(empowered){ empowered=false; addFloat(me.x,me.y,'⚡ OVERCHARGED!','#facc15'); }
+    shots.forEach((sp,t)=>{
       setTimeout(()=>{
         if(!me||me.dead||!gs.running) return;
-        const a2=angle+spread;
-        projs.push({x:me.x, y:me.y,
+        const a2=angle+sp;
+        projs.push({x:me.x,y:me.y,
           vx:Math.cos(a2)*ab.speed, vy:Math.sin(a2)*ab.speed,
-          r:ab.r, life, dmg:Math.floor(ab.dmg*(shots.length>1?0.7:1)),
-          color:ab.color, owner:myId});
+          r:ab.r, life, dmg:t===0?thisDmg:dmgEach,
+          color:ab.color, owner:myId,
+          bounce:   ab.bounce||false,
+          rootDur:  ab.rootDur||0,
+          dotDmg:   ab.dotDmg||0,
+          dotTicks: ab.dotTicks||0,
+          dotInterval: ab.dotInterval||800,
+          stealthBonus: (invisible&&gs.cls==='shadowmage')});
         channel.publish('act',{type:'PROJ',from:myId,
-          sx:me.x,sy:me.y,tx:wx+spread*300,ty:wy,
+          sx:me.x,sy:me.y,tx:wx+sp*300,ty:wy,
           sp:ab.speed,col:ab.color,r:ab.r,life});
-      }, t*100);
+      },t*90);
     });
+    // Break stealth on fire
+    if(invisible){ invisible=false; invisT=0;
+      channel.publish('act',{type:'INVIS',from:myId,on:false}); }
     spawnParticles(me.x,me.y,ab.color,8);
-    feed(ab.icon+' '+ab.name+(shots.length>1?' (×'+shots.length+')':''), '');
+    feed(ab.icon+' '+ab.name+(shots.length>1?' ×3':''),'');
 
-  } else if(ab.type==='dash'){
-    spawnParticles(me.x,me.y,ab.color,12);
-    const nx=me.x+Math.cos(angle)*(ab.dist||200);
-    const ny=me.y+Math.sin(angle)*(ab.dist||200);
+  // ── HEAL-DASH ─────────────────────────────────────────────────────────────
+  } else if(ab.type==='heal_dash'){
+    spawnParticles(me.x,me.y,ab.color,14);
+    const dir = ab.dir==='escape' ? angle+Math.PI : angle;
+    let nx=me.x+Math.cos(dir)*(ab.dist||220);
+    let ny=me.y+Math.sin(dir)*(ab.dist||220);
     if(!hitBuilding(nx,ny,PR)){
       me.x=Math.max(PR,Math.min(WW-PR,nx));
       me.y=Math.max(PR,Math.min(WH-PR,ny));
     }
-    spawnParticles(me.x,me.y,ab.color,12);
-    feed(ab.icon+' '+ab.name,'');
+    const h=ab.healAmt||25;
+    me.hp=Math.min(MAX_HP,me.hp+h);
+    spawnParticles(me.x,me.y,'#4ade80',16);
+    spawnParticles(me.x,me.y,ab.color,10);
+    addFloat(me.x,me.y,'+'+h+' HP','#4ade80');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
+    feed(ab.icon+' '+ab.name+' +'+ h+' HP','h');
 
-  } else if(ab.type==='aoe'){
-    const range2 = ab.range*ab.range;
+  // ── TRAIL DASH (Pyromancer Magma Dash) ─────────────────────────────────────
+  } else if(ab.type==='trail_dash'){
+    spawnParticles(me.x,me.y,ab.color,16);
+    const nx=me.x+Math.cos(angle)*(ab.dist||220);
+    const ny=me.y+Math.sin(angle)*(ab.dist||220);
+    // Record trail positions along dash path for visual effect
+    for(let t=0;t<8;t++){
+      const tx=me.x+Math.cos(angle)*(ab.dist||220)*(t/8);
+      const ty=me.y+Math.sin(angle)*(ab.dist||220)*(t/8);
+      spawnParticles(tx,ty,'#ff6a00',6);
+    }
+    if(!hitBuilding(nx,ny,PR)){
+      me.x=Math.max(PR,Math.min(WW-PR,nx));
+      me.y=Math.max(PR,Math.min(WH-PR,ny));
+    }
+    // Heal on arrival
+    const h2=ab.healAmt||28;
+    me.hp=Math.min(MAX_HP,me.hp+h2);
+    spawnParticles(me.x,me.y,'#4ade80',14);
+    spawnParticles(me.x,me.y,ab.color,14);
+    addFloat(me.x,me.y,'+'+h2+' HP','#4ade80');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+    feed(ab.icon+' Magma Dash +'+ h2+' HP','h');
+
+  // ── INVISIBILITY ──────────────────────────────────────────────────────────
+  } else if(ab.type==='invis'){
+    invisible=true; invisT=ab.dur||3;
+    spawnParticles(me.x,me.y,ab.color,22);
+    channel.publish('act',{type:'INVIS',from:myId,on:true});
+    addFloat(me.x,me.y,'👻 INVISIBLE','#a855f7');
+    feed(ab.icon+' Shadow Veil — VANISHED for '+ab.dur+'s!','s');
+
+  // ── ABSORB NEXT HIT ───────────────────────────────────────────────────────
+  } else if(ab.type==='absorb'){
+    nextHitBlock=true; nextHitBlockAb=ab;
+    shieldOn=true; shieldT=ab.dur||4;
+    spawnParticles(me.x,me.y,ab.color,20);
+    addFloat(me.x,me.y,'🛡️ NEXT HIT: HARMLESS','#c084fc');
+    feed(ab.icon+' '+ab.name+' — next hit is HARMLESS!','s');
+
+  // ── EMPOWER (Overcharge) ──────────────────────────────────────────────────
+  } else if(ab.type==='empower'){
+    empowered=true; empoweredT=Date.now()+(ab.empDur||5)*1000;
+    empoweredMult=ab.empDmgMult||3;
+    spawnParticles(me.x,me.y,ab.color,22);
+    addFloat(me.x,me.y,'⚡ NEXT HIT = 3×','#facc15');
+    feed(ab.icon+' Overcharge — next hit is 3×!','s');
+
+  // ── FREEZE NEAREST (root) ─────────────────────────────────────────────────
+  } else if(ab.type==='root'){
+    let nearest=null, nearD2=ab.range*ab.range;
     Object.values(players).forEach(en=>{
-      if(en.dead) return;
-      const dx2=me.x-en.x, dy2=me.y-en.y;
-      if(dx2*dx2+dy2*dy2 < range2){
+      if(en.dead)return;
+      const d=(me.x-en.x)**2+(me.y-en.y)**2;
+      if(d<nearD2){nearD2=d;nearest=en;}
+    });
+    if(nearest){
+      rootedUntil[nearest.id]=Date.now()+(ab.rootDur||2000);
+      nearest.rooted=true;
+      nearest.hp=Math.max(0,nearest.hp-(ab.dmg||8));
+      dmgDealt+=ab.dmg||8;
+      channel.publish('act',{type:'ROOT',from:myId,to:nearest.id,dur:ab.rootDur||2000,dmg:ab.dmg||8});
+      spawnParticles(nearest.x,nearest.y,'#bae6fd',22);
+      addFloat(nearest.x,nearest.y,'❄️ FROZEN!','#bae6fd');
+      feed(ab.icon+' '+nearest.name+' is FROZEN!','s');
+    } else { abCDs[idx]=0; feed(ab.icon+' No target in range',''); }
+
+  // ── SOUL VORTEX (pull AoE) ────────────────────────────────────────────────
+  } else if(ab.type==='pull_aoe'){
+    const r2=ab.range*ab.range; let count=0;
+    Object.values(players).forEach(en=>{
+      if(en.dead)return;
+      const dx=en.x-me.x, dy=en.y-me.y, d2=dx*dx+dy*dy;
+      if(d2<r2){
+        const d=Math.sqrt(d2)||1;
+        en.x=me.x+dx*(70/d); en.y=me.y+dy*(70/d); // pull to 70px
+        channel.publish('act',{type:'PULL',from:myId,to:en.id,toX:en.x,toY:en.y,dmg:ab.dmg,color:ab.color});
+        dmgDealt+=ab.dmg; en.hp=Math.max(0,en.hp-ab.dmg);
+        addFloat(en.x,en.y,'-'+ab.dmg,ab.color);
+        count++;
+      }
+    });
+    spawnParticles(me.x,me.y,ab.color,28);
+    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+    feed(ab.icon+' Soul Vortex'+(count?' → '+count+' pulled':''),'');
+
+  // ── DEATH PACT (sacrifice) ────────────────────────────────────────────────
+  } else if(ab.type==='sacrifice'){
+    let nearest=null, nearD2=ab.range*ab.range;
+    Object.values(players).forEach(en=>{
+      if(en.dead)return;
+      const d=(me.x-en.x)**2+(me.y-en.y)**2;
+      if(d<nearD2){nearD2=d;nearest=en;}
+    });
+    if(nearest){
+      const cost=ab.selfDmg||30;
+      me.hp=Math.max(1,me.hp-cost);
+      addFloat(me.x,me.y,'-'+cost+' (pact)','#94a3b8');
+      channel.publish('hps',{id:myId,hp:me.hp});
+      channel.publish('act',{type:'HIT',from:myId,to:nearest.id,dmg:ab.dmg,color:ab.color});
+      dmgDealt+=ab.dmg; nearest.hp=Math.max(0,nearest.hp-ab.dmg);
+      spawnParticles(nearest.x,nearest.y,ab.color,24);
+      addFloat(nearest.x,nearest.y,'-'+ab.dmg+' 💀','#94a3b8');
+      feed(ab.icon+' Death Pact: -'+cost+'HP → dealt '+ab.dmg,'s');
+    } else { abCDs[idx]=0; feed(ab.icon+' No target',''); }
+
+  // ── LIFE STEAL ────────────────────────────────────────────────────────────
+  } else if(ab.type==='lifesteal'){
+    let nearest=null, nearD2=ab.range*ab.range;
+    Object.values(players).forEach(en=>{
+      if(en.dead)return;
+      const d=(me.x-en.x)**2+(me.y-en.y)**2;
+      if(d<nearD2){nearD2=d;nearest=en;}
+    });
+    if(nearest){
+      const stolen=Math.min(ab.stealAmt||40, nearest.hp-1);
+      channel.publish('act',{type:'HIT',from:myId,to:nearest.id,dmg:stolen,color:ab.color});
+      dmgDealt+=stolen; nearest.hp=Math.max(1,nearest.hp-stolen);
+      me.hp=Math.min(MAX_HP,me.hp+stolen);
+      channel.publish('hps',{id:myId,hp:me.hp});
+      addFloat(nearest.x,nearest.y,'-'+stolen,ab.color);
+      addFloat(me.x,me.y,'+'+stolen+' STOLEN','#f43f5e');
+      spawnParticles(nearest.x,nearest.y,ab.color,14);
+      spawnParticles(me.x,me.y,'#4ade80',10);
+      feed(ab.icon+' Transfusion: drained '+stolen+' HP','h');
+    } else { abCDs[idx]=0; feed(ab.icon+' No target in range',''); }
+
+  // ── DOT AoE (spore cloud / grave curse) ──────────────────────────────────
+  } else if(ab.type==='dot_aoe'){
+    const r2=ab.range*ab.range; const targets=[];
+    Object.values(players).forEach(en=>{
+      if(!en.dead&&(me.x-en.x)**2+(me.y-en.y)**2<r2) targets.push(en);
+    });
+    if(targets.length>0){
+      targets.forEach(en=>{
+        clearInterval(dotTimers[en.id]);
+        let tick=0;
+        dotTimers[en.id]=setInterval(()=>{
+          if(!gs.running||en.dead||tick>=(ab.dotTicks||4)){clearInterval(dotTimers[en.id]);return;}
+          channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:ab.dotDmg||10,color:ab.color});
+          dmgDealt+=ab.dotDmg||10; en.hp=Math.max(0,en.hp-(ab.dotDmg||10));
+          spawnParticles(en.x,en.y,ab.color,4);
+          tick++;
+        }, ab.dotInterval||600);
+      });
+      spawnParticles(me.x,me.y,ab.color,22);
+      channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
+      feed(ab.icon+' '+ab.name+' → '+targets.length+' target'+(targets.length>1?'s':''),'s');
+    } else { abCDs[idx]=0; feed(ab.icon+' No targets',''); }
+
+  // ── HEAL ─────────────────────────────────────────────────────────────────
+  } else if(ab.type==='heal'){
+    const amt=-ab.dmg;
+    me.hp=Math.min(MAX_HP,me.hp+amt);
+    spawnParticles(me.x,me.y,'#4ade80',18);
+    addFloat(me.x,me.y,'+'+amt+' HP','#4ade80');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
+    feed(ab.icon+' '+ab.name+' +'+amt+' HP','h');
+
+  // ── STANDARD AoE ─────────────────────────────────────────────────────────
+  } else if(ab.type==='aoe'){
+    const r2=ab.range*ab.range;
+    Object.values(players).forEach(en=>{
+      if(en.dead)return;
+      if((me.x-en.x)**2+(me.y-en.y)**2<r2){
         channel.publish('act',{type:'HIT',from:myId,to:en.id,dmg:ab.dmg,color:ab.color});
         dmgDealt+=ab.dmg; en.hp=Math.max(0,en.hp-ab.dmg);
         addFloat(en.x,en.y,'-'+ab.dmg,ab.color);
       }
     });
-    spawnParticles(me.x,me.y,ab.color,24);
+    spawnParticles(me.x,me.y,ab.color,26);
     channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:ab.color});
     feed(ab.icon+' '+ab.name,'');
-
-  } else if(ab.type==='heal'){
-    const amt = -ab.dmg;
-    me.hp = Math.min(MAX_HP, me.hp+amt);
-    spawnParticles(me.x,me.y,'#4ade80',16);
-    addFloat(me.x,me.y,'+'+amt,'#4ade80');
-    channel.publish('act',{type:'FX',from:myId,x:me.x,y:me.y,color:'#4ade80'});
-    channel.publish('hps',{id:myId,hp:me.hp});
-    feed(ab.icon+' Healed +'+amt,'h');
-
-  } else if(ab.type==='shield'){
-    shieldOn=true; shieldT=ab.dur||4;
-    spawnParticles(me.x,me.y,ab.color,16);
-    feed(ab.icon+' '+ab.name+' active!','');
   }
+}
+
+// =====================================================
+//  STATUS EFFECTS (handled inline in update() and useAb())
+// =====================================================
+// Legacy stub — kept for reference
+function applyBurn(eid, burn){
+  if(!players[eid]) return;
+  clearInterval(burnTargets[eid]?.interval);
+  let t=0;
+  burnTargets[eid]={
+    interval: setInterval(()=>{
+      const en=players[eid];
+      if(!en||en.dead||t>=burn.ticks){clearInterval(burnTargets[eid].interval);delete burnTargets[eid];return;}
+      en.hp=Math.max(0,en.hp-burn.dmg);
+      spawnParticles(en.x,en.y,'#ff4500',4);
+      addFloat(en.x,en.y,'-'+burn.dmg,'#ff4500');
+      t++;
+    }, burn.interval||900)
+  };
+}
+function applyPoison(eid, poison){
+  if(!players[eid]) return;
+  clearInterval(poisonTargets[eid]?.interval);
+  let t=0;
+  poisonTargets[eid]={
+    interval: setInterval(()=>{
+      const en=players[eid];
+      if(!en||en.dead||t>=poison.ticks){clearInterval(poisonTargets[eid].interval);delete poisonTargets[eid];return;}
+      en.hp=Math.max(0,en.hp-poison.dmg);
+      spawnParticles(en.x,en.y,'#4ade80',4);
+      addFloat(en.x,en.y,'-'+poison.dmg,'#4ade80');
+      t++;
+    }, poison.interval||800)
+  };
+}
+function applyFreeze(eid, dur){
+  if(!players[eid]) return;
+  frozenTargets[eid]=(frozenTargets[eid]||0)+dur;
+}
+
+// When WE get hit by status effects
+let burnSelfTimer=null, poisonSelfTimer=null;
+let frozenSelf=false, frozenSelfTimer=0;
+function startBurnSelf(burn){
+  clearInterval(burnSelfTimer);
+  let t=0;
+  burnSelfTimer=setInterval(()=>{
+    if(!me||me.dead||t>=burn.ticks){clearInterval(burnSelfTimer);return;}
+    me.hp=Math.max(1,me.hp-burn.dmg);
+    spawnParticles(me.x,me.y,'#ff4500',4);
+    addFloat(me.x,me.y,'-'+burn.dmg,'#ff4500');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    feed('🔥 Burning -'+burn.dmg,'d');
+    t++;
+  }, burn.interval||900);
+}
+function startPoisonSelf(poison){
+  clearInterval(poisonSelfTimer);
+  let t=0;
+  poisonSelfTimer=setInterval(()=>{
+    if(!me||me.dead||t>=poison.ticks){clearInterval(poisonSelfTimer);return;}
+    me.hp=Math.max(1,me.hp-poison.dmg);
+    spawnParticles(me.x,me.y,'#4ade80',4);
+    addFloat(me.x,me.y,'-'+poison.dmg,'#4ade80');
+    channel.publish('hps',{id:myId,hp:me.hp});
+    feed('☠️ Poisoned -'+poison.dmg,'d');
+    t++;
+  }, poison.interval||800);
+}
+function startFreezeSelf(dur){
+  frozenSelf=true; frozenSelfTimer=dur;
+  feed('❄️ Frozen! Cannot move for '+dur+'s','d');
+}
+
+function updateStatusEffects(dt){
+  // Invis timer
+  if(invisible){ invisTimer-=dt; if(invisTimer<=0){invisible=false;feed('👁 Visible again','');} }
+  // Frozen self
+  if(frozenSelf){ frozenSelfTimer-=dt; if(frozenSelfTimer<=0)frozenSelf=false; }
+  // Update frozen enemies
+  Object.keys(frozenTargets).forEach(id=>{
+    frozenTargets[id]-=dt;
+    if(frozenTargets[id]<=0) delete frozenTargets[id];
+  });
 }
 
 // =====================================================
@@ -1432,7 +1946,9 @@ function feed(msg,cls){
 
 function lighten(hex,a){
   const n=parseInt(hex.replace('#',''),16);
-  const r=Math.min(255,(n>>16)+a),g=Math.min(255,((n>>8)&255)+a),b=Math.min(255,(n&255)+a);
+  const r=Math.max(0,Math.min(255,(n>>16)+a));
+  const g=Math.max(0,Math.min(255,((n>>8)&255)+a));
+  const b=Math.max(0,Math.min(255,(n&255)+a));
   return '#'+(((r<<16)|(g<<8)|b).toString(16).padStart(6,'0'));
 }
 function darken(hex,a){return lighten(hex,-a);}
@@ -1440,6 +1956,7 @@ function darken(hex,a){return lighten(hex,-a);}
 function endGame(won, winKills, winName){
   if(gameOver) return;
   gameOver=true; gs.running=false;
+
   setTimeout(()=>{
     document.getElementById('goEm').textContent=won?'🏆':'💀';
     const t=document.getElementById('goTitle');
@@ -1450,6 +1967,7 @@ function endGame(won, winKills, winName){
          :(winName||'Someone')+' won with '+KILL_GOAL+' kills!';
     document.getElementById('goKills').textContent=kills;
     document.getElementById('goDmg').textContent=dmgDealt;
+
     // Leaderboard
     const lb=document.getElementById('goLeaderboard');
     if(lb){
@@ -1473,6 +1991,7 @@ function endGame(won, winKills, winName){
         }).join('');
     }
     document.getElementById('goOverlay').style.display='flex';
+
   },650);
 }
 
@@ -1488,9 +2007,17 @@ function resetGame(){
   players={}; projs=[]; particles=[]; floaters.length=0; feedEls.length=0;
   gs.started=false; gs.running=false; gameOver=false;
   me=null; kills=0; dmgDealt=0; inGrass=false; reviveTimer=0; killBoard={};
+  // Clear all status effects
+  invisible=false; invisT=0;
+  nextHitBlock=false; nextHitBlockAb=null;
+  empowered=false; empoweredT=0; empoweredMult=1;
+  Object.values(burnTimers).forEach(id=>clearInterval(id));
+  Object.values(dotTimers).forEach(id=>clearInterval(id));
+  burnTimers={}; rootedUntil={}; dotTimers={};
   document.getElementById('goOverlay').style.display='none';
   document.getElementById('reviveBanner').style.display='none';
   document.getElementById('kfeed').innerHTML='';
+  buildClassGrid();
   showScreen('setupScreen');
   document.getElementById('joinBtn').disabled=false; setSt('');
 }
